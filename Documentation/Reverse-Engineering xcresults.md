@@ -104,6 +104,21 @@ Known mappings (summary)
 	•	counts: TestCaseResultsByDestinationAndConfiguration (root), TestCaseRuns (per device/config)
 	•	testFailures: TestIssues where isTopLevel=1 and testCaseRun_fk is not null
 
+Insights mapping (longestTestRunsInsights)
+	•	Source fixture: Tests/Fixtures/Test-Kickstarter-Framework-iOS-2026.01.11_21-21-05-+0200.xcresult
+	•	Base dataset: TestCaseRuns joined through TestSuiteRuns -> TestableRuns for a given TestPlanRun.
+	•	mean: avg(TestCaseRuns.duration) across all runs (567 in this fixture).
+	•	stddev: sqrt(avg(duration * duration) - mean * mean); threshold = mean + (3 * stddev).
+	•	associatedTestIdentifiers: TestCases.identifierURL for runs where duration > threshold.
+	•	durationOfSlowTests: sum(duration) for runs where duration > threshold (10.948390007019043 here).
+	•	impact: "(" + floor(100 * durationOfSlowTests / sum(duration)) + "%)".
+	•	meanTime: formatted mean with 1 decimal + " across <count> test runs" (locale-dependent: "0,1s" here).
+	•	title: "<count> longest test runs with outlier durations exceeding <threshold>s (three standard deviations)".
+	•	targetName: Testables.name via TestSuiteRuns.testableRun_fk -> TestableRuns.testable_fk.
+	•	testPlanConfigurationName: TestPlanConfigurations.name via TestPlanRuns.configuration_fk.
+	•	deviceName: RunDestinations.name; osNameAndVersion: Platforms.userDescription + " " + Devices.operatingSystemVersion.
+	•	Ordering of associatedTestIdentifiers in xcresulttool output still needs confirmation.
+
 Adding fixtures and snapshots
 	•	Drop the .xcresult in Tests/Fixtures/.
 	•	Generate snapshot JSON:
