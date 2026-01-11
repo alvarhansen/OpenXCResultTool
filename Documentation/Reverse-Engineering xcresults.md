@@ -116,4 +116,4 @@ Next subcommands checklist
 	•	[x] get test-results tests (SQLite-backed, snapshot-tested)
 	•	[x] get test-results test-details
 	•	[x] get test-results activities
-	•	[ ] get test-results metrics
+	•	[x] get test-results metrics

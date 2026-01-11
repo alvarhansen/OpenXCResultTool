@@ -120,6 +120,55 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testMetricsMatchesFixture() throws {
+        let snapshots = [
+            MetricsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                snapshotSuffix: "metrics"
+            ),
+            MetricsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                snapshotSuffix: "metrics"
+            ),
+        ]
+
+        for snapshot in snapshots {
+            let fixtureURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).xcresult")
+            let snapshotURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).\(snapshot.snapshotSuffix).json")
+
+            let builder = try TestResultsMetricsBuilder(xcresultPath: fixtureURL.path)
+            let metrics = try builder.metrics(testId: nil)
+            let actual = try encode(metrics)
+            let expected = try Data(contentsOf: snapshotURL)
+
+            let normalizedActual = try normalizedJSON(actual)
+            let normalizedExpected = try normalizedJSON(expected)
+
+            XCTAssertEqual(normalizedActual, normalizedExpected, "Mismatch for fixture \(snapshot.fixtureName) (\(snapshot.snapshotSuffix))")
+        }
+    }
+
+    func testMetricsWithTestIdMatchesFixture() throws {
+        let snapshot = MetricsTestIdSnapshot(
+            fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+            testId: "RandomStuffUITests/testLaunchPerformance()",
+            snapshotSuffix: "metrics.testLaunchPerformance"
+        )
+
+        let fixtureURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).xcresult")
+        let snapshotURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).\(snapshot.snapshotSuffix).json")
+
+        let builder = try TestResultsMetricsBuilder(xcresultPath: fixtureURL.path)
+        let metrics = try builder.metrics(testId: snapshot.testId)
+        let actual = try encode(metrics)
+        let expected = try Data(contentsOf: snapshotURL)
+
+        let normalizedActual = try normalizedJSON(actual)
+        let normalizedExpected = try normalizedJSON(expected)
+
+        XCTAssertEqual(normalizedActual, normalizedExpected, "Mismatch for fixture \(snapshot.fixtureName) (\(snapshot.snapshotSuffix))")
+    }
+
     private func fixturesDirectory() -> URL {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         return root.appendingPathComponent("Tests").appendingPathComponent("Fixtures")
@@ -170,6 +219,17 @@ private struct TestDetailsSnapshot {
 }
 
 private struct ActivitiesSnapshot {
+    let fixtureName: String
+    let testId: String
+    let snapshotSuffix: String
+}
+
+private struct MetricsSnapshot {
+    let fixtureName: String
+    let snapshotSuffix: String
+}
+
+private struct MetricsTestIdSnapshot {
     let fixtureName: String
     let testId: String
     let snapshotSuffix: String

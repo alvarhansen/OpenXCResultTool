@@ -1,0 +1,44 @@
+[
+  {
+    "testIdentifier" : "RandomStuffTests/testPerformanceExample()",
+    "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testPerformanceExample",
+    "testRuns" : [
+      {
+        "device" : {
+          "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+          "deviceName" : "iPhone 17 Pro"
+        },
+        "metrics" : [
+          {
+            "baselineAverage" : 0,
+            "baselineName" : "",
+            "displayName" : "Time",
+            "identifier" : "com.apple.XCTPerformanceMetric_WallClockTime",
+            "maxPercentRegression" : 10,
+            "maxPercentRelativeStandardDeviation" : 10,
+            "maxRegression" : 0.1,
+            "maxStandardDeviation" : 10,
+            "measurements" : [
+              2.4958e-05,
+              3.458e-06,
+              2.25e-06,
+              1.875e-06,
+              1.625e-06,
+              1.625e-06,
+              1.541e-06,
+              1.583e-06,
+              1.541e-06,
+              1.583e-06
+            ],
+            "polarity" : "prefers smaller",
+            "unitOfMeasurement" : "seconds"
+          }
+        ],
+        "testPlanConfiguration" : {
+          "configurationId" : "1",
+          "configurationName" : "Test Scheme Action"
+        }
+      }
+    ]
+  }
+]

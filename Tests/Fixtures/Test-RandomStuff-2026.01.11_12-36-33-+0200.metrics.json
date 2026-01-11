@@ -1,0 +1,81 @@
+[
+  {
+    "testIdentifier" : "RandomStuffTests/testPerformanceExample()",
+    "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testPerformanceExample",
+    "testRuns" : [
+      {
+        "device" : {
+          "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+          "deviceName" : "iPhone 17 Pro"
+        },
+        "metrics" : [
+          {
+            "baselineAverage" : 0,
+            "baselineName" : "",
+            "displayName" : "Time",
+            "identifier" : "com.apple.XCTPerformanceMetric_WallClockTime",
+            "maxPercentRegression" : 10,
+            "maxPercentRelativeStandardDeviation" : 10,
+            "maxRegression" : 0.1,
+            "maxStandardDeviation" : 10,
+            "measurements" : [
+              4.0583e-05,
+              8.958e-06,
+              4.083e-06,
+              3.583e-06,
+              3.458e-06,
+              3.375e-06,
+              3.333e-06,
+              3.333e-06,
+              3.291e-06,
+              3.25e-06
+            ],
+            "polarity" : "prefers smaller",
+            "unitOfMeasurement" : "seconds"
+          }
+        ],
+        "testPlanConfiguration" : {
+          "configurationId" : "1",
+          "configurationName" : "Test Scheme Action"
+        }
+      }
+    ]
+  },
+  {
+    "testIdentifier" : "RandomStuffUITests/testLaunchPerformance()",
+    "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITests/testLaunchPerformance",
+    "testRuns" : [
+      {
+        "device" : {
+          "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+          "deviceName" : "iPhone 17 Pro"
+        },
+        "metrics" : [
+          {
+            "baselineAverage" : 0,
+            "baselineName" : "",
+            "displayName" : "Duration (AppLaunch)",
+            "identifier" : "com.apple.dt.XCTMetric_ApplicationLaunch-AppLaunch.duration",
+            "maxPercentRegression" : 10,
+            "maxPercentRelativeStandardDeviation" : 10,
+            "maxRegression" : 0,
+            "maxStandardDeviation" : 10,
+            "measurements" : [
+              5.310419583000001,
+              3.531684042,
+              5.020238542,
+              2.7210313750000004,
+              2.899339834
+            ],
+            "polarity" : "prefers smaller",
+            "unitOfMeasurement" : "s"
+          }
+        ],
+        "testPlanConfiguration" : {
+          "configurationId" : "1",
+          "configurationName" : "Test Scheme Action"
+        }
+      }
+    ]
+  }
+]
