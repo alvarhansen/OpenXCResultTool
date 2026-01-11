@@ -119,6 +119,22 @@ Insights mapping (longestTestRunsInsights)
 	•	deviceName: RunDestinations.name; osNameAndVersion: Platforms.userDescription + " " + Devices.operatingSystemVersion.
 	•	Ordering of associatedTestIdentifiers in xcresulttool output still needs confirmation.
 
+SQL sketch (per test plan run)
+	•	Base runs:
+		select TestCaseRuns.duration, TestCases.identifierURL
+		from TestCaseRuns
+		join TestCases on TestCases.rowid = TestCaseRuns.testCase_fk
+		join TestSuiteRuns on TestSuiteRuns.rowid = TestCaseRuns.testSuiteRun_fk
+		join TestableRuns on TestableRuns.rowid = TestSuiteRuns.testableRun_fk
+		where TestableRuns.testPlanRun_fk = :testPlanRunId;
+	•	Mean/stddev:
+		select avg(duration) as mean,
+		       sqrt(avg(duration * duration) - (avg(duration) * avg(duration))) as stddev
+		from TestCaseRuns
+		join TestSuiteRuns on TestSuiteRuns.rowid = TestCaseRuns.testSuiteRun_fk
+		join TestableRuns on TestableRuns.rowid = TestSuiteRuns.testableRun_fk
+		where TestableRuns.testPlanRun_fk = :testPlanRunId;
+
 Adding fixtures and snapshots
 	•	Drop the .xcresult in Tests/Fixtures/.
 	•	Generate snapshot JSON:
