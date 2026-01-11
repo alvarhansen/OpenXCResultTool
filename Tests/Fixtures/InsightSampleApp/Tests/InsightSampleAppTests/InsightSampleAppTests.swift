@@ -49,4 +49,13 @@ final class InsightSampleAppTests: XCTestCase {
             XCTFail("Flaky failure for insights.")
         }
     }
+
+    func testCrashExample() {
+        guard ProcessInfo.processInfo.environment["INSIGHT_CRASH"] == "1" else {
+            XCTAssertTrue(true)
+            return
+        }
+
+        fatalError("Intentional crash for insights.")
+    }
 }
