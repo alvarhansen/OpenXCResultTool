@@ -29,4 +29,12 @@ final class InsightSampleAppTests: XCTestCase {
             XCTAssertTrue(true)
         }
     }
+
+    func testSecondaryConditionalFailureExample() {
+        if ProcessInfo.processInfo.environment["INSIGHT_FORCE_FAILURE"] == "1" {
+            XCTFail("Second forced failure for insights.")
+        } else {
+            XCTAssertTrue(true)
+        }
+    }
 }
