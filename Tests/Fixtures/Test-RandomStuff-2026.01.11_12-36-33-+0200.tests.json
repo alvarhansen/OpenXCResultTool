@@ -1,86 +1,81 @@
 {
-  "devices" : [
-    {
-      "architecture" : "arm64",
-      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
-      "deviceName" : "iPhone 17 Pro",
-      "modelName" : "iPhone 17 Pro",
-      "osBuildNumber" : "23C54",
-      "osVersion" : "26.2",
-      "platform" : "iOS Simulator"
-    }
-  ],
   "testNodes" : [
     {
+      "name" : "RandomStuff",
+      "nodeType" : "Test Plan",
+      "result" : "Passed",
       "children" : [
         {
+          "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests",
+          "name" : "RandomStuffUITests",
+          "result" : "Passed",
           "children" : [
             {
+              "result" : "Passed",
               "children" : [
                 {
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITestsLaunchTests/testLaunch",
                   "children" : [
                     {
                       "duration" : "12s",
+                      "result" : "Passed",
                       "durationInSeconds" : 12.552080988883972,
                       "name" : "Dark Appearance, Landscape Right",
-                      "nodeType" : "Arguments",
-                      "result" : "Passed"
+                      "nodeType" : "Arguments"
                     },
                     {
                       "duration" : "12s",
-                      "durationInSeconds" : 12.184519052505493,
                       "name" : "Dark Appearance, Portrait",
                       "nodeType" : "Arguments",
-                      "result" : "Passed"
+                      "result" : "Passed",
+                      "durationInSeconds" : 12.184519052505493
                     },
                     {
                       "duration" : "13s",
-                      "durationInSeconds" : 13.709094047546387,
                       "name" : "Light Appearance, Portrait",
                       "nodeType" : "Arguments",
-                      "result" : "Passed"
+                      "result" : "Passed",
+                      "durationInSeconds" : 13.709094047546387
                     },
                     {
                       "duration" : "26s",
-                      "durationInSeconds" : 26.4132159948349,
                       "name" : "Unspecified, Portrait",
                       "nodeType" : "Arguments",
-                      "result" : "Passed"
+                      "result" : "Passed",
+                      "durationInSeconds" : 26.4132159948349
                     }
                   ],
-                  "duration" : "16s",
-                  "durationInSeconds" : 16.214727520942688,
-                  "name" : "testLaunch()",
-                  "nodeIdentifier" : "RandomStuffUITestsLaunchTests/testLaunch",
-                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITestsLaunchTests/testLaunch",
                   "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "nodeIdentifier" : "RandomStuffUITestsLaunchTests/testLaunch",
+                  "duration" : "16s",
+                  "name" : "testLaunch()",
+                  "result" : "Passed",
+                  "durationInSeconds" : 16.214727520942688
                 }
               ],
               "name" : "RandomStuffUITestsLaunchTests",
               "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITestsLaunchTests",
-              "nodeType" : "Test Suite",
-              "result" : "Passed"
+              "nodeType" : "Test Suite"
             },
             {
               "children" : [
                 {
-                  "duration" : "6s",
-                  "durationInSeconds" : 6.086980938911438,
-                  "name" : "testExample()",
-                  "nodeIdentifier" : "RandomStuffUITests/testExample()",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITests/testExample",
                   "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "duration" : "6s",
+                  "nodeIdentifier" : "RandomStuffUITests/testExample()",
+                  "name" : "testExample()",
+                  "result" : "Passed",
+                  "durationInSeconds" : 6.086980938911438
                 },
                 {
-                  "duration" : "1m 14s",
-                  "durationInSeconds" : 74.32568204402924,
-                  "name" : "testLaunchPerformance()",
-                  "nodeIdentifier" : "RandomStuffUITests/testLaunchPerformance()",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITests/testLaunchPerformance",
                   "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "duration" : "1m 14s",
+                  "nodeIdentifier" : "RandomStuffUITests/testLaunchPerformance()",
+                  "name" : "testLaunchPerformance()",
+                  "result" : "Passed",
+                  "durationInSeconds" : 74.32568204402924
                 }
               ],
               "name" : "RandomStuffUITests",
@@ -89,38 +84,35 @@
               "result" : "Passed"
             }
           ],
-          "name" : "RandomStuffUITests",
-          "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests",
-          "nodeType" : "UI test bundle",
-          "result" : "Passed"
+          "nodeType" : "UI test bundle"
         },
         {
           "children" : [
             {
+              "nodeType" : "Test Suite",
               "children" : [
                 {
-                  "duration" : "0,00077s",
-                  "durationInSeconds" : 0.0007680654525756836,
-                  "name" : "testExample()",
-                  "nodeIdentifier" : "RandomStuffTests/testExample()",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample",
                   "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "duration" : "0,00077s",
+                  "nodeIdentifier" : "RandomStuffTests/testExample()",
+                  "name" : "testExample()",
+                  "result" : "Passed",
+                  "durationInSeconds" : 0.0007680654525756836
                 },
                 {
-                  "duration" : "3s",
-                  "durationInSeconds" : 3.1683719158172607,
-                  "name" : "testPerformanceExample()",
-                  "nodeIdentifier" : "RandomStuffTests/testPerformanceExample()",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testPerformanceExample",
                   "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "duration" : "3s",
+                  "nodeIdentifier" : "RandomStuffTests/testPerformanceExample()",
+                  "name" : "testPerformanceExample()",
+                  "result" : "Passed",
+                  "durationInSeconds" : 3.1683719158172607
                 }
               ],
-              "name" : "RandomStuffTests",
               "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests",
-              "nodeType" : "Test Suite",
-              "result" : "Passed"
+              "result" : "Passed",
+              "name" : "RandomStuffTests"
             }
           ],
           "name" : "RandomStuffTests",
@@ -128,16 +120,24 @@
           "nodeType" : "Unit test bundle",
           "result" : "Passed"
         }
-      ],
-      "name" : "RandomStuff",
-      "nodeType" : "Test Plan",
-      "result" : "Passed"
+      ]
     }
   ],
   "testPlanConfigurations" : [
     {
       "configurationId" : "1",
       "configurationName" : "Test Scheme Action"
+    }
+  ],
+  "devices" : [
+    {
+      "platform" : "iOS Simulator",
+      "architecture" : "arm64",
+      "osBuildNumber" : "23C54",
+      "deviceName" : "iPhone 17 Pro",
+      "osVersion" : "26.2",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "modelName" : "iPhone 17 Pro"
     }
   ]
 }

@@ -1,52 +1,52 @@
 {
-  "devicesAndConfigurations" : [
-    {
-      "device" : {
-        "architecture" : "arm64",
-        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
-        "deviceName" : "iPhone 17 Pro",
-        "modelName" : "iPhone 17 Pro",
-        "osBuildNumber" : "23C54",
-        "osVersion" : "26.2",
-        "platform" : "iOS Simulator"
-      },
-      "expectedFailures" : 0,
-      "failedTests" : 1,
-      "passedTests" : 3,
-      "skippedTests" : 0,
-      "testPlanConfiguration" : {
-        "configurationId" : "1",
-        "configurationName" : "Test Scheme Action"
-      }
-    }
-  ],
-  "environmentDescription" : "RandomStuff · Built with macOS 26.1",
-  "expectedFailures" : 0,
-  "failedTests" : 1,
   "finishTime" : 1768131680.587,
-  "passedTests" : 3,
-  "result" : "Failed",
-  "skippedTests" : 0,
-  "startTime" : 1768131676.408,
   "statistics" : [
     {
-      "subtitle" : "1 test run",
-      "title" : "1 test collected performance metrics"
+      "title" : "1 test collected performance metrics",
+      "subtitle" : "1 test run"
     }
   ],
-  "testFailures" : [
-    {
-      "failureText" : "XCTAssertEqual failed: (\"1\") is not equal to (\"2\")",
-      "targetName" : "RandomStuffTests",
-      "testIdentifier" : 3,
-      "testIdentifierString" : "RandomStuffTests/testFoo()",
-      "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
-      "testName" : "testFoo()"
-    }
-  ],
+  "expectedFailures" : 0,
   "title" : "Test - RandomStuff",
+  "totalTestCount" : 4,
   "topInsights" : [
 
   ],
-  "totalTestCount" : 4
+  "passedTests" : 3,
+  "failedTests" : 1,
+  "startTime" : 1768131676.408,
+  "skippedTests" : 0,
+  "environmentDescription" : "RandomStuff · Built with macOS 26.1",
+  "result" : "Failed",
+  "testFailures" : [
+    {
+      "failureText" : "XCTAssertEqual failed: (\"1\") is not equal to (\"2\")",
+      "testName" : "testFoo()",
+      "targetName" : "RandomStuffTests",
+      "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
+      "testIdentifier" : 3,
+      "testIdentifierString" : "RandomStuffTests/testFoo()"
+    }
+  ],
+  "devicesAndConfigurations" : [
+    {
+      "testPlanConfiguration" : {
+        "configurationName" : "Test Scheme Action",
+        "configurationId" : "1"
+      },
+      "expectedFailures" : 0,
+      "passedTests" : 3,
+      "skippedTests" : 0,
+      "device" : {
+        "osBuildNumber" : "23C54",
+        "modelName" : "iPhone 17 Pro",
+        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+        "platform" : "iOS Simulator",
+        "deviceName" : "iPhone 17 Pro",
+        "architecture" : "arm64",
+        "osVersion" : "26.2"
+      },
+      "failedTests" : 1
+    }
+  ]
 }

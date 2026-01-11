@@ -1,0 +1,46 @@
+{
+  "startTime" : 1768159265.811,
+  "failedTests" : 0,
+  "finishTime" : 1768159332.63,
+  "testFailures" : [
+
+  ],
+  "passedTests" : 567,
+  "result" : "Passed",
+  "totalTestCount" : 567,
+  "statistics" : [
+
+  ],
+  "environmentDescription" : "Kickstarter-Framework-iOS · Built with macOS 26.1",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "18% of duration",
+      "text" : "12 longest test runs with outlier durations exceeding 0.66s (three standard deviations)"
+    }
+  ],
+  "expectedFailures" : 0,
+  "skippedTests" : 0,
+  "devicesAndConfigurations" : [
+    {
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationName" : "Test Scheme Action",
+        "configurationId" : "1"
+      },
+      "device" : {
+        "deviceId" : "E6C54AC8-7E38-486F-A761-1398A51741CA",
+        "modelName" : "iPad mini (A17 Pro)",
+        "osVersion" : "18.6",
+        "platform" : "iOS Simulator",
+        "deviceName" : "iPad mini (A17 Pro)",
+        "osBuildNumber" : "22G86",
+        "architecture" : "arm64"
+      },
+      "expectedFailures" : 0,
+      "passedTests" : 567,
+      "failedTests" : 0
+    }
+  ],
+  "title" : "Test - Kickstarter-Framework-iOS"
+}

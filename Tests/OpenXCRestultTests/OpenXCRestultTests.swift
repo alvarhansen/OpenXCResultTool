@@ -236,6 +236,7 @@ final class OpenXCRestultTests: XCTestCase {
             "Test-RandomStuff-2026.01.11_12-36-33-+0200",
             "Test-RandomStuff-2026.01.11_13-41-16-+0200",
             "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+            "Test-Kickstarter-Framework-iOS-2026.01.11_21-21-05-+0200",
         ]
 
         for fixtureName in fixtureNames {

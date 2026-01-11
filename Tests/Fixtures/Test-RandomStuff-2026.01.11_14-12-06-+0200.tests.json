@@ -1,131 +1,131 @@
 {
+  "testPlanConfigurations" : [
+    {
+      "configurationName" : "Test Scheme Action",
+      "configurationId" : "1"
+    }
+  ],
   "devices" : [
     {
-      "architecture" : "arm64",
+      "osBuildNumber" : "23C54",
+      "modelName" : "iPhone 17 Pro",
       "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
       "deviceName" : "iPhone 17 Pro",
-      "modelName" : "iPhone 17 Pro",
-      "osBuildNumber" : "23C54",
-      "osVersion" : "26.2",
-      "platform" : "iOS Simulator"
+      "architecture" : "arm64",
+      "platform" : "iOS Simulator",
+      "osVersion" : "26.2"
     }
   ],
   "testNodes" : [
     {
+      "nodeType" : "Test Plan",
       "children" : [
         {
+          "name" : "RandomStuffTests",
+          "result" : "Failed",
+          "nodeType" : "Unit test bundle",
           "children" : [
             {
+              "result" : "Failed",
+              "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests",
+              "nodeType" : "Test Suite",
               "children" : [
                 {
-                  "duration" : "0,00062s",
                   "durationInSeconds" : 0.0006170272827148438,
+                  "result" : "Passed",
+                  "duration" : "0,00062s",
                   "name" : "testExample()",
                   "nodeIdentifier" : "RandomStuffTests/testExample()",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample",
-                  "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "nodeType" : "Test Case"
                 },
                 {
-                  "duration" : "0,00033s",
+                  "result" : "Passed",
                   "durationInSeconds" : 0.00032699108123779297,
-                  "name" : "testExample2()",
                   "nodeIdentifier" : "RandomStuffTests/testExample2()",
+                  "name" : "testExample2()",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample2",
                   "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "duration" : "0,00033s"
                 },
                 {
+                  "duration" : "0,18s",
+                  "result" : "Expected Failure",
+                  "durationInSeconds" : 0.18298602104187012,
+                  "nodeIdentifier" : "RandomStuffTests/testExpectedFailure()",
+                  "name" : "testExpectedFailure()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExpectedFailure",
+                  "nodeType" : "Test Case",
                   "children" : [
                     {
                       "name" : "Working on a fix for this problem.",
                       "nodeType" : "Failure Message"
                     }
-                  ],
-                  "duration" : "0,18s",
-                  "durationInSeconds" : 0.18298602104187012,
-                  "name" : "testExpectedFailure()",
-                  "nodeIdentifier" : "RandomStuffTests/testExpectedFailure()",
-                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExpectedFailure",
-                  "nodeType" : "Test Case",
-                  "result" : "Expected Failure"
+                  ]
                 },
                 {
+                  "duration" : "0,0039s",
+                  "result" : "Failed",
+                  "durationInSeconds" : 0.003908038139343262,
+                  "nodeIdentifier" : "RandomStuffTests/testExpectedFailure2()",
+                  "name" : "testExpectedFailure2()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExpectedFailure2",
+                  "nodeType" : "Test Case",
                   "children" : [
                     {
                       "name" : "RandomStuffTests.swift:49: Expected failure 'Working on a fix for this problem.' but none recorded",
                       "nodeType" : "Failure Message"
                     }
-                  ],
-                  "duration" : "0,0039s",
-                  "durationInSeconds" : 0.003908038139343262,
-                  "name" : "testExpectedFailure2()",
-                  "nodeIdentifier" : "RandomStuffTests/testExpectedFailure2()",
-                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExpectedFailure2",
-                  "nodeType" : "Test Case",
-                  "result" : "Failed"
+                  ]
                 },
                 {
+                  "duration" : "0,0021s",
+                  "result" : "Failed",
+                  "durationInSeconds" : 0.0021200180053710938,
+                  "nodeType" : "Test Case",
                   "children" : [
                     {
                       "name" : "RandomStuffTests.swift:38: XCTAssertEqual failed: (\"1\") is not equal to (\"2\")",
                       "nodeType" : "Failure Message"
                     }
                   ],
-                  "duration" : "0,0021s",
-                  "durationInSeconds" : 0.0021200180053710938,
                   "name" : "testFoo()",
                   "nodeIdentifier" : "RandomStuffTests/testFoo()",
-                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
-                  "nodeType" : "Test Case",
-                  "result" : "Failed"
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo"
                 },
                 {
                   "duration" : "0,25s",
+                  "result" : "Passed",
                   "durationInSeconds" : 0.253322958946228,
+                  "nodeType" : "Test Case",
                   "name" : "testPerformanceExample()",
                   "nodeIdentifier" : "RandomStuffTests/testPerformanceExample()",
-                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testPerformanceExample",
-                  "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testPerformanceExample"
                 },
                 {
+                  "duration" : "0,0048s",
+                  "result" : "Skipped",
+                  "durationInSeconds" : 0.00476992130279541,
+                  "nodeType" : "Test Case",
                   "children" : [
                     {
                       "name" : "Test skipped - Required API is not available for this test.",
                       "nodeType" : "Failure Message"
                     }
                   ],
-                  "duration" : "0,0048s",
-                  "durationInSeconds" : 0.00476992130279541,
                   "name" : "testSkippedTest()",
                   "nodeIdentifier" : "RandomStuffTests/testSkippedTest()",
-                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testSkippedTest",
-                  "nodeType" : "Test Case",
-                  "result" : "Skipped"
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testSkippedTest"
                 }
               ],
-              "name" : "RandomStuffTests",
-              "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests",
-              "nodeType" : "Test Suite",
-              "result" : "Failed"
+              "name" : "RandomStuffTests"
             }
           ],
-          "name" : "RandomStuffTests",
-          "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests",
-          "nodeType" : "Unit test bundle",
-          "result" : "Failed"
+          "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests"
         }
       ],
       "name" : "RandomStuff",
-      "nodeType" : "Test Plan",
       "result" : "Failed"
-    }
-  ],
-  "testPlanConfigurations" : [
-    {
-      "configurationId" : "1",
-      "configurationName" : "Test Scheme Action"
     }
   ]
 }

@@ -1,0 +1,34 @@
+{
+  "commonFailureInsights" : [
+
+  ],
+  "failureDistributionInsights" : [
+
+  ],
+  "longestTestRunsInsights" : [
+    {
+      "impact" : "(18%)",
+      "associatedTestIdentifiers" : [
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/ActivitiesViewControllerTests/testActivities_All",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/CommentRepliesViewControllerTests/testViewController_WithRootCommentAndFailingReplies",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/CommentRepliesViewControllerTests/testViewController_WithRootCommentAndSuccessfulReplies",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/CommentRepliesViewControllerTests/testViewController_WithRootCommentRepliesandViewMoreRepliesFailedCell",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/CommentsViewControllerTests/testView_WithFailedRemovedAndSuccessfulComments_ShouldDisplayAll_Success",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/CreatePasswordTableViewControllerTests/testCreatePassword",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/PaymentMethodSettingsViewControllerTests/testView_WithCreditCards",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/PledgeViewControllerTests/testView_PledgeContext_UnavailableStoredCards",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/ProjectPageViewControllerTests/testLoggedOut_NonBacker_LiveProjectSwitchedToEnvironmentalCommitmentsTab_Success",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/SettingsNewslettersViewControllerTests/testSettingsNewslettersViewController",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/SettingsNotificationsViewControllerTests/testSettingsNotificationsViewController",
+        "test://com.apple.xcode/Kickstarter/Kickstarter-Framework-iOSTests/SettingsNotificationsViewControllerTests/testSettingsNotificationsViewController_isCreator"
+      ],
+      "osNameAndVersion" : "iOS Simulator 18.6",
+      "targetName" : "Kickstarter-Framework-iOSTests",
+      "durationOfSlowTests" : 10.948390007019043,
+      "testPlanConfigurationName" : "Test Scheme Action",
+      "deviceName" : "iPad mini (A17 Pro)",
+      "title" : "12 longest test runs with outlier durations exceeding 0.66s (three standard deviations)",
+      "meanTime" : "0,1s across 567 test runs"
+    }
+  ]
+}

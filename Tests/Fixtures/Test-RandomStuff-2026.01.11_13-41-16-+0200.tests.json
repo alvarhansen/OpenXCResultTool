@@ -1,86 +1,86 @@
 {
-  "devices" : [
+  "testPlanConfigurations" : [
     {
-      "architecture" : "arm64",
-      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
-      "deviceName" : "iPhone 17 Pro",
-      "modelName" : "iPhone 17 Pro",
-      "osBuildNumber" : "23C54",
-      "osVersion" : "26.2",
-      "platform" : "iOS Simulator"
+      "configurationName" : "Test Scheme Action",
+      "configurationId" : "1"
     }
   ],
   "testNodes" : [
     {
+      "name" : "RandomStuff",
       "children" : [
         {
+          "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Failed",
           "children" : [
             {
+              "result" : "Failed",
+              "name" : "RandomStuffTests",
               "children" : [
                 {
-                  "duration" : "0,00052s",
+                  "result" : "Passed",
+                  "nodeIdentifier" : "RandomStuffTests/testExample()",
                   "durationInSeconds" : 0.0005190372467041016,
                   "name" : "testExample()",
-                  "nodeIdentifier" : "RandomStuffTests/testExample()",
+                  "nodeType" : "Test Case",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample",
-                  "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "duration" : "0,00052s"
                 },
                 {
-                  "duration" : "0,00032s",
-                  "durationInSeconds" : 0.0003170967102050781,
-                  "name" : "testExample2()",
                   "nodeIdentifier" : "RandomStuffTests/testExample2()",
-                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample2",
+                  "name" : "testExample2()",
                   "nodeType" : "Test Case",
+                  "durationInSeconds" : 0.0003170967102050781,
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample2",
+                  "duration" : "0,00032s",
                   "result" : "Passed"
                 },
                 {
+                  "result" : "Failed",
+                  "durationInSeconds" : 0.12889504432678223,
                   "children" : [
                     {
-                      "name" : "RandomStuffTests.swift:38: XCTAssertEqual failed: (\"1\") is not equal to (\"2\")",
-                      "nodeType" : "Failure Message"
+                      "nodeType" : "Failure Message",
+                      "name" : "RandomStuffTests.swift:38: XCTAssertEqual failed: (\"1\") is not equal to (\"2\")"
                     }
                   ],
-                  "duration" : "0,13s",
-                  "durationInSeconds" : 0.12889504432678223,
-                  "name" : "testFoo()",
                   "nodeIdentifier" : "RandomStuffTests/testFoo()",
+                  "name" : "testFoo()",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
                   "nodeType" : "Test Case",
-                  "result" : "Failed"
+                  "duration" : "0,13s"
                 },
                 {
                   "duration" : "0,26s",
-                  "durationInSeconds" : 0.25846803188323975,
-                  "name" : "testPerformanceExample()",
-                  "nodeIdentifier" : "RandomStuffTests/testPerformanceExample()",
+                  "result" : "Passed",
                   "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testPerformanceExample",
                   "nodeType" : "Test Case",
-                  "result" : "Passed"
+                  "name" : "testPerformanceExample()",
+                  "durationInSeconds" : 0.25846803188323975,
+                  "nodeIdentifier" : "RandomStuffTests/testPerformanceExample()"
                 }
               ],
-              "name" : "RandomStuffTests",
               "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests",
-              "nodeType" : "Test Suite",
-              "result" : "Failed"
+              "nodeType" : "Test Suite"
             }
           ],
-          "name" : "RandomStuffTests",
-          "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests",
-          "nodeType" : "Unit test bundle",
-          "result" : "Failed"
+          "name" : "RandomStuffTests"
         }
       ],
-      "name" : "RandomStuff",
       "nodeType" : "Test Plan",
       "result" : "Failed"
     }
   ],
-  "testPlanConfigurations" : [
+  "devices" : [
     {
-      "configurationId" : "1",
-      "configurationName" : "Test Scheme Action"
+      "osBuildNumber" : "23C54",
+      "architecture" : "arm64",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "osVersion" : "26.2",
+      "deviceName" : "iPhone 17 Pro",
+      "platform" : "iOS Simulator",
+      "modelName" : "iPhone 17 Pro"
     }
   ]
 }
