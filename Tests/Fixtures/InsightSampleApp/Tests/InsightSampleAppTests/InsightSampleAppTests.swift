@@ -58,4 +58,14 @@ final class InsightSampleAppTests: XCTestCase {
 
         fatalError("Intentional crash for insights.")
     }
+
+    func testTimeoutExample() {
+        guard ProcessInfo.processInfo.environment["INSIGHT_TIMEOUT"] == "1" else {
+            XCTAssertTrue(true)
+            return
+        }
+
+        _ = expectation(description: "Never fulfills")
+        waitForExpectations(timeout: 0.1)
+    }
 }

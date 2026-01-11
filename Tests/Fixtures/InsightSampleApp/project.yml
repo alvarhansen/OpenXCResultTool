@@ -43,6 +43,16 @@ schemes:
         - InsightSampleAppUITests
       environmentVariables:
         INSIGHT_CRASH: "1"
+  InsightSampleAppTimeout:
+    build:
+      targets:
+        InsightSampleApp: all
+    test:
+      targets:
+        - InsightSampleAppTests
+        - InsightSampleAppUITests
+      environmentVariables:
+        INSIGHT_TIMEOUT: "1"
 targets:
   InsightSampleApp:
     type: application
