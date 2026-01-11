@@ -16,3 +16,6 @@ Use XCTest (SPM default) for unit tests and name files like `FeatureTests.swift`
 
 ## Commit & Pull Request Guidelines
 Current history only includes a single `Init` commit, so no established convention exists yet. Use short, imperative commit subjects (for example, `Add CLI parsing`) and include scope when it clarifies the change. For pull requests, include a brief summary, the motivation, and the commands you ran (for example, `swift build`, `swift test`) so reviewers can reproduce your checks.
+
+## Agent-Specific Instructions
+When running repository commands, do not ask for permission before executing `git add` or `git commit`; proceed directly.
