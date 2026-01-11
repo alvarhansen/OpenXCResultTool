@@ -83,3 +83,37 @@ References
 	•	The open-source xcresultparser README – notes that it relies on Xcode 13’s xcresulttool/xccov to get JSON, parsed via XCResultKit ￼ ￼.
 	•	Evidence of Protobuf usage in Xcode’s result processing (XCResultKit loading SwiftProtobuf) ￼.
 	•	Pol Piella’s blog “How to programmatically parse an XCResult bundle” – provides context on what an .xcresult contains and why it isn’t human-readable ￼ ￼.
+
+Debug/Reverse-Engineering Workflow (Project Notes)
+
+Use the xcresulttool JSON as the oracle, then map fields to SQLite tables.
+
+Core commands
+	•	Dump the summary JSON (oracle):
+		xcrun xcresulttool get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	Inspect the DB schema:
+		sqlite3 Tests/Fixtures/<bundle>.xcresult/database.sqlite3 ".tables"
+		sqlite3 Tests/Fixtures/<bundle>.xcresult/database.sqlite3 ".schema <Table>"
+	•	Quick counts:
+		sqlite3 Tests/Fixtures/<bundle>.xcresult/database.sqlite3 "select result, count(*) from TestCaseResultsByDestinationAndConfiguration where destination_fk is null and configuration_fk is null group by result;"
+
+Known mappings (summary)
+	•	title: Actions.name + " - " + TestPlans.name
+	•	start/finish: Actions.started/finished + 978307200 (Core Data epoch)
+	•	environmentDescription: Invocations.scheme + " · Built with " + host platform + host OS version
+	•	counts: TestCaseResultsByDestinationAndConfiguration (root), TestCaseRuns (per device/config)
+	•	testFailures: TestIssues where isTopLevel=1 and testCaseRun_fk is not null
+
+Adding fixtures and snapshots
+	•	Drop the .xcresult in Tests/Fixtures/.
+	•	Generate snapshot JSON:
+		xcrun xcresulttool get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json > Tests/Fixtures/<bundle>.summary.json
+	•	Run tests:
+		swift test
+
+Next subcommands checklist
+	•	[x] get test-results summary (SQLite-backed, snapshot-tested)
+	•	[ ] get test-results tests
+	•	[ ] get test-results test-details
+	•	[ ] get test-results activities
+	•	[ ] get test-results metrics
