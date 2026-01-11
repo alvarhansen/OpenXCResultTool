@@ -12,4 +12,10 @@ final class InsightSampleAppUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
+
+    func testConditionalFailureExample() {
+        if ProcessInfo.processInfo.environment["INSIGHT_FORCE_FAILURE"] == "1" {
+            XCTFail("Forced UI failure for insights.")
+        }
+    }
 }
