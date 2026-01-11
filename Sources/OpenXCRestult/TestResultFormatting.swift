@@ -36,7 +36,7 @@ struct RunDurationFormatter {
         formatter.usesGroupingSeparator = false
         formatter.decimalSeparator = ","
         formatter.usesSignificantDigits = true
-        formatter.minimumSignificantDigits = 2
+        formatter.minimumSignificantDigits = 1
         formatter.maximumSignificantDigits = 2
         return formatter
     }()

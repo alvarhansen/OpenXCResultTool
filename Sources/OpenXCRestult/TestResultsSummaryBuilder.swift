@@ -3,8 +3,10 @@ import SQLite3
 
 struct TestResultsSummaryBuilder {
     private let context: XCResultContext
+    private let xcresultPath: String
 
     init(xcresultPath: String) throws {
+        self.xcresultPath = xcresultPath
         self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
@@ -15,6 +17,7 @@ struct TestResultsSummaryBuilder {
         let devicesAndConfigurations = try loadDevicesAndConfigurations()
         let testFailures = try loadTestFailures()
         let statistics = try loadStatistics()
+        let topInsights = (try? loadTopInsights()) ?? []
 
         let title = "\(action.name) - \(action.testPlanName)"
         let environmentDescription = try buildEnvironmentDescription()
@@ -36,7 +39,7 @@ struct TestResultsSummaryBuilder {
             statistics: statistics,
             testFailures: testFailures,
             title: title,
-            topInsights: [],
+            topInsights: topInsights,
             totalTestCount: totalTestCount
         )
     }
@@ -152,7 +155,9 @@ struct TestResultsSummaryBuilder {
         JOIN TestCaseRuns ON TestCaseRuns.rowid = TestIssues.testCaseRun_fk
         JOIN TestCases ON TestCases.rowid = TestCaseRuns.testCase_fk
         JOIN TestSuites ON TestSuites.rowid = TestCases.testSuite_fk
-        WHERE TestIssues.isTopLevel = 1 AND TestIssues.testCaseRun_fk IS NOT NULL
+        WHERE TestIssues.isTopLevel = 1
+          AND TestIssues.testCaseRun_fk IS NOT NULL
+          AND TestCaseRuns.result = 'Failure'
         ORDER BY TestIssues.rowid;
         """
 
@@ -187,6 +192,21 @@ struct TestResultsSummaryBuilder {
             stats.append(performance)
         }
         return stats
+    }
+
+    private func loadTopInsights() throws -> [SummaryInsight] {
+        let insightsBuilder = try TestResultsInsightsBuilder(xcresultPath: xcresultPath)
+        let insights = try insightsBuilder.insights()
+
+        return insights.longestTestRunsInsights.map { insight in
+            let percent = insight.impact.trimmingCharacters(in: CharacterSet(charactersIn: "()"))
+            let impact = percent.isEmpty ? "" : "\(percent) of duration"
+            return SummaryInsight(
+                category: "Longest Test Runs",
+                impact: impact,
+                text: insight.title
+            )
+        }
     }
 
     private func loadDynamicParameterStatistic() throws -> SummaryStatistic? {

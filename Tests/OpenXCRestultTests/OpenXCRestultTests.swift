@@ -331,16 +331,16 @@ final class OpenXCRestultTests: XCTestCase {
         ]
 
         let outputPipe = Pipe()
-        let errorPipe = Pipe()
         process.standardOutput = outputPipe
-        process.standardError = errorPipe
+        process.standardError = outputPipe
 
         try process.run()
-        process.waitUntilExit()
 
         let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
         if process.terminationStatus != 0 {
-            let error = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            let error = String(data: output, encoding: .utf8) ?? ""
             throw ProcessFailure("xcresulttool failed for \(fixtureURL.lastPathComponent) (\(command.rawValue)): \(error)")
         }
 

@@ -184,13 +184,17 @@ struct TestResultsTestsBuilder {
         var nodes: [TestNode] = []
         for run in runs {
             let result = TestResultFormatter.mapResult(run.result)
-            switch result {
-            case "Failed":
-                let issues = try fetchTestIssues(testCaseRunId: run.id)
-                for issue in issues {
-                    let message = issueMessage(issue)
+            let issues = try fetchTestIssues(testCaseRunId: run.id)
+            for issue in issues {
+                let message = issueMessage(issue)
+                if issue.issueType == "Runtime Warning" {
+                    nodes.append(issueNode(message, nodeType: "Runtime Warning"))
+                } else if result == "Failed" {
                     nodes.append(failureNode(message))
                 }
+            }
+
+            switch result {
             case "Expected Failure":
                 let failures = try fetchExpectedFailures(testCaseRunId: run.id)
                 for failure in failures {
@@ -208,6 +212,19 @@ struct TestResultsTestsBuilder {
         }
 
         return nodes
+    }
+
+    private func issueNode(_ message: String, nodeType: String) -> TestNode {
+        TestNode(
+            children: nil,
+            duration: nil,
+            durationInSeconds: nil,
+            name: message,
+            nodeIdentifier: nil,
+            nodeIdentifierURL: nil,
+            nodeType: nodeType,
+            result: nil
+        )
     }
 
     private func failureNode(_ message: String) -> TestNode {
@@ -367,7 +384,9 @@ struct TestResultsTestsBuilder {
 
     private func fetchTestIssues(testCaseRunId: Int) throws -> [TestIssueRow] {
         let sql = """
-        SELECT TestIssues.compactDescription, TestIssues.sourceCodeContext_fk
+        SELECT TestIssues.issueType,
+               TestIssues.compactDescription,
+               TestIssues.sourceCodeContext_fk
         FROM TestIssues
         WHERE TestIssues.isTopLevel = 1 AND TestIssues.testCaseRun_fk = ?
         ORDER BY TestIssues.rowid;
@@ -375,10 +394,11 @@ struct TestResultsTestsBuilder {
         return try context.database.query(sql, binder: { statement in
             sqlite3_bind_int(statement, 1, Int32(testCaseRunId))
         }) { statement in
-            let description = SQLiteDatabase.string(statement, 0) ?? ""
-            let contextId = SQLiteDatabase.int(statement, 1)
+            let issueType = SQLiteDatabase.string(statement, 0) ?? ""
+            let description = SQLiteDatabase.string(statement, 1) ?? ""
+            let contextId = SQLiteDatabase.int(statement, 2)
             let location = try fetchSourceCodeLocation(contextId: contextId)
-            return TestIssueRow(compactDescription: description, location: location)
+            return TestIssueRow(issueType: issueType, compactDescription: description, location: location)
         }
     }
 
@@ -428,7 +448,7 @@ struct TestResultsTestsBuilder {
         switch kind.lowercased() {
         case "ui":
             return "UI test bundle"
-        case "app hosted":
+        case "app hosted", "xctest-tool hosted":
             return "Unit test bundle"
         default:
             return "Test bundle"
@@ -475,6 +495,7 @@ private struct ArgumentRow {
 }
 
 private struct TestIssueRow {
+    let issueType: String
     let compactDescription: String
     let location: SourceCodeLocationRow?
 }

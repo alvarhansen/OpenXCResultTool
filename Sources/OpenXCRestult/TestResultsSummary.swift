@@ -55,4 +55,8 @@ struct TestFailure: Encodable {
     let testName: String
 }
 
-struct SummaryInsight: Encodable {}
+struct SummaryInsight: Encodable {
+    let category: String
+    let impact: String
+    let text: String
+}
