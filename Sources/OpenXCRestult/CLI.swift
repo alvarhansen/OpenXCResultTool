@@ -281,7 +281,7 @@ struct InsightsCommand: ParsableCommand {
         }
 
         let builder = try TestResultsInsightsBuilder(xcresultPath: path)
-        let insights = builder.insights()
+        let insights = try builder.insights()
         let encoder = JSONEncoder()
         var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
         if #available(macOS 10.15, *) {

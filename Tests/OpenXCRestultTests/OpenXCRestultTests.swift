@@ -30,7 +30,7 @@ final class OpenXCRestultTests: XCTestCase {
             suffix: "insights",
             build: { path in
                 let builder = try TestResultsInsightsBuilder(xcresultPath: path)
-                let insights = builder.insights()
+                let insights = try builder.insights()
                 return try encode(insights)
             }
         )
@@ -180,9 +180,52 @@ final class OpenXCRestultTests: XCTestCase {
         XCTAssertEqual(normalizedActual, normalizedExpected, "Mismatch for fixture \(snapshot.fixtureName) (\(snapshot.snapshotSuffix))")
     }
 
+    func testXCResultToolParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let commands: [XCResulttoolCommand] = [.summary, .tests, .insights, .metrics]
+        let fixtures = try fixtureBundles()
+
+        for fixtureURL in fixtures {
+            for command in commands {
+                let expected = try xcresulttoolJSON(
+                    xcrunURL: xcrunURL,
+                    fixtureURL: fixtureURL,
+                    command: command
+                )
+                let actual = try openXcresultOutput(
+                    fixturePath: fixtureURL.path,
+                    command: command
+                )
+
+                let normalizedActual = try normalizedParityJSON(actual, command: command)
+                let normalizedExpected = try normalizedParityJSON(expected, command: command)
+
+                XCTAssertEqual(
+                    normalizedActual,
+                    normalizedExpected,
+                    "Mismatch for fixture \(fixtureURL.lastPathComponent) (\(command.rawValue))"
+                )
+            }
+        }
+    }
+
     private func fixturesDirectory() -> URL {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         return root.appendingPathComponent("Tests").appendingPathComponent("Fixtures")
+    }
+
+    private func fixtureBundles() throws -> [URL] {
+        let directory = fixturesDirectory()
+        let contents = try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )
+        return contents
+            .filter { $0.pathExtension == "xcresult" }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
     private func assertMatchesSnapshots(
@@ -220,6 +263,127 @@ final class OpenXCRestultTests: XCTestCase {
     private func normalizedJSON(_ data: Data) throws -> Data {
         let object = try JSONSerialization.jsonObject(with: data, options: [])
         return try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+    }
+
+    private func normalizedParityJSON(_ data: Data, command: XCResulttoolCommand) throws -> Data {
+        switch command {
+        case .insights:
+            return try normalizedInsightsJSON(data)
+        default:
+            return try normalizedJSON(data)
+        }
+    }
+
+    private func normalizedInsightsJSON(_ data: Data) throws -> Data {
+        let object = try JSONSerialization.jsonObject(with: data, options: [])
+        guard var dict = object as? [String: Any] else {
+            return try normalizedJSON(data)
+        }
+
+        dict["commonFailureInsights"] = normalizeInsightsArray(dict["commonFailureInsights"])
+        dict["failureDistributionInsights"] = normalizeInsightsArray(dict["failureDistributionInsights"])
+        dict["longestTestRunsInsights"] = normalizeInsightsArray(dict["longestTestRunsInsights"])
+
+        return try JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys])
+    }
+
+    private func normalizeInsightsArray(_ value: Any?) -> Any {
+        guard var array = value as? [[String: Any]] else { return value ?? [] }
+
+        for index in array.indices {
+            if var identifiers = array[index]["associatedTestIdentifiers"] as? [String] {
+                identifiers.sort()
+                array[index]["associatedTestIdentifiers"] = identifiers
+            }
+        }
+
+        array.sort {
+            let left = $0["title"] as? String ?? ""
+            let right = $1["title"] as? String ?? ""
+            return left < right
+        }
+
+        return array
+    }
+
+    private func resolveXcrun() -> URL? {
+        let path = "/usr/bin/xcrun"
+        guard FileManager.default.isExecutableFile(atPath: path) else { return nil }
+        return URL(fileURLWithPath: path)
+    }
+
+    private func xcresulttoolJSON(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        command: XCResulttoolCommand
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "get",
+            "test-results",
+            command.rawValue,
+            "--path",
+            fixtureURL.path,
+            "--format",
+            "json"
+        ]
+
+        let outputPipe = Pipe()
+        let errorPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = errorPipe
+
+        try process.run()
+        process.waitUntilExit()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        if process.terminationStatus != 0 {
+            let error = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool failed for \(fixtureURL.lastPathComponent) (\(command.rawValue)): \(error)")
+        }
+
+        return output
+    }
+
+    private func openXcresultOutput(
+        fixturePath: String,
+        command: XCResulttoolCommand
+    ) throws -> Data {
+        switch command {
+        case .summary:
+            let builder = try TestResultsSummaryBuilder(xcresultPath: fixturePath)
+            return try encode(builder.summary())
+        case .tests:
+            let builder = try TestResultsTestsBuilder(xcresultPath: fixturePath)
+            return try encode(builder.tests())
+        case .insights:
+            let builder = try TestResultsInsightsBuilder(xcresultPath: fixturePath)
+            return try encode(builder.insights())
+        case .metrics:
+            let builder = try TestResultsMetricsBuilder(xcresultPath: fixturePath)
+            return try encode(builder.metrics(testId: nil))
+        }
+    }
+}
+
+private enum XCResulttoolCommand: String {
+    case summary
+    case tests
+    case insights
+    case metrics
+}
+
+private struct ProcessFailure: Error, CustomStringConvertible {
+    let message: String
+
+    init(_ message: String) {
+        self.message = message
+    }
+
+    var description: String {
+        message
     }
 }
 
