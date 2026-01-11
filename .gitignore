@@ -6,3 +6,5 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+Tests/Fixtures/InsightSampleApp/InsightSampleApp.xcodeproj/
+Tests/Fixtures/InsightSampleApp/Results/

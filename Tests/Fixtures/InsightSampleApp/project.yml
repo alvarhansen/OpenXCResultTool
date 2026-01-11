@@ -1,0 +1,44 @@
+name: InsightSampleApp
+options:
+  bundleIdPrefix: ee.hansen
+settings:
+  base:
+    IPHONEOS_DEPLOYMENT_TARGET: 17.0
+targets:
+  InsightSampleApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/InsightSampleApp
+    info:
+      path: Config/InsightSampleApp-Info.plist
+      properties:
+        CFBundleDisplayName: InsightSampleApp
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ee.hansen.InsightSampleApp
+  InsightSampleAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/InsightSampleAppTests
+    info:
+      path: Config/InsightSampleAppTests-Info.plist
+    dependencies:
+      - target: InsightSampleApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ee.hansen.InsightSampleAppTests
+  InsightSampleAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/InsightSampleAppUITests
+    info:
+      path: Config/InsightSampleAppUITests-Info.plist
+    dependencies:
+      - target: InsightSampleApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ee.hansen.InsightSampleAppUITests
