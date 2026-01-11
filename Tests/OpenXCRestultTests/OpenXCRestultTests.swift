@@ -25,6 +25,17 @@ final class OpenXCRestultTests: XCTestCase {
         )
     }
 
+    func testInsightsMatchesFixture() throws {
+        try assertMatchesSnapshots(
+            suffix: "insights",
+            build: { path in
+                let builder = try TestResultsInsightsBuilder(xcresultPath: path)
+                let insights = builder.insights()
+                return try encode(insights)
+            }
+        )
+    }
+
     func testTestDetailsMatchesFixture() throws {
         let snapshots = [
             TestDetailsSnapshot(

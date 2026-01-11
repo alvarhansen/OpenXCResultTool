@@ -117,3 +117,4 @@ Next subcommands checklist
 	•	[x] get test-results test-details
 	•	[x] get test-results activities
 	•	[x] get test-results metrics
+	•	[x] get test-results insights
