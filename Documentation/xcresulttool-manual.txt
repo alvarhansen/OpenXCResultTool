@@ -1,0 +1,209 @@
+xcresulttool(1) 	    General Commands Manual	       xcresulttool(1)
+
+
+
+NAME
+       xcresulttool - view Xcode result bundle data in a human-readable or
+       machine-parseable format.
+
+
+SYNOPSIS
+       xcresulttool get build-results [--schema] [--schema-version 0.0.0]
+       --path Example.xcresult [--compact]
+
+       xcresulttool get test-results summary [--schema] [--schema-version
+       0.0.0] --path Example.xcresult [--compact]
+
+       xcresulttool get test-results tests [--schema] [--schema-version 0.0.0]
+       --path Example.xcresult [--compact]
+
+       xcresulttool get test-results insights [--schema] [--schema-version
+       0.0.0] --path Example.xcresult [--compact]
+
+       xcresulttool get test-results test-details [--schema] [--schema-version
+       0.0.0] --path Example.xcresult --test-id exampleTest() [--compact]
+
+       xcresulttool get test-results activities [--schema] [--schema-version
+       0.0.0] --path Example.xcresult --test-id exampleTest() [--compact]
+
+       xcresulttool get test-results metrics [--schema] [--schema-version
+       0.0.0] --path Example.xcresult [--test-id exampleTest()] [--compact]
+
+       xcresulttool get log [--schema] [--schema-version 0.0.0] --path
+       Example.xcresult [--type build | action | console] [--compact]
+
+       xcresulttool get content-availability [--schema] [--schema-version
+       0.0.0] --path Example.xcresult [--compact]
+
+       xcresulttool get [object] --path Example.xcresult [--format json | raw]
+       [--id ID]
+
+       xcresulttool export diagnostics --path Example.xcresult --output-path
+       ./Out
+
+       xcresulttool export attachments [--schema] [--schema-version 0.0.0]
+       --path Example.xcresult --output-path ./Out [--test-id exampleTest()]
+       [--only-failures]
+
+       xcresulttool export metrics [--schema] [--schema-version 0.0.0] --path
+       Example.xcresult --output-path ./Out [--test-id exampleTest()]
+
+       xcresulttool export [object] --type [file | directory] --path
+       Example.xcresult --output-path ./Out --id ID
+
+       xcresulttool formatDescription [get] [--format json | text | markdown |
+       typeHierarchy] [--hash] [--include-event-stream-types]
+
+       xcresulttool formatDescription diff [--format text | markdown]
+       version1.json version2.json
+
+       xcresulttool merge Input1.xcresult Input2.xcresult [...] --output-path
+       Merged.xcresult
+
+       xcresulttool metadata get --path Example.xcresult
+
+       xcresulttool metadata addExternalLocation --path Example.xcresult
+       --identifier identifier --link link [--description description]
+
+       xcresulttool version
+
+       xcresulttool graph --path Example.xcresult
+
+       xcresulttool compare [--schema] [--schema-version 0.0.0]
+       Example2.xcresult --baseline-path Example1.xcresult [--summary
+       --test-failures --tests --warnings --analyzer-issues]
+
+DESCRIPTION
+       xcresulttool is a tool for reading result bundles.
+
+       To produce a result bundle, run xcodebuild with the flag
+
+	      -resultBundlePath PATH
+
+	where PATH is the desired path ending with .xcresult.
+
+COMMANDS
+       get build-results
+	      Print the build action details.
+
+       get test-results summary
+	      Print the test results summary.
+
+       get test-results tests
+	      Print the tests structure.
+
+       get test-results insights
+	      Print the test insights.
+
+       get test-results test-details
+	      Print the detailed information about the specified test.
+
+       get test-results activities
+	      Print the activity trees for the specified test. If the test has
+	      more than one run, the activity trees for each run will be
+	      included.
+
+       get test-results metrics
+	      Print the performance metrics associated with the specified test
+	      identifier. All the available metrics will be included if no
+	      test identifier is provided.
+
+       get log
+	      Print build, action, or console log.
+
+       get content-availability
+	      Print details about the different types of content contained by
+	      the bundle, such as code coverage, build logs, or test results.
+
+       get object
+	      Print the contents of an object given its ID, result bundle path
+	      and output format (json for structured objects or raw for
+	      attachments).
+
+       export diagnostics
+	      Export the diagnostics directory from a result bundle.
+
+       export attachments
+	      Export attachments for a given test from a result bundle. If no
+	      test identifier is specified, all the attachments will be
+	      exported.
+
+       export metrics
+	      Export CSV file with performance measurements for a given test.
+	      If no test identifier is specified, CSV files for all the
+	      available tests will be exported.
+
+       export object
+	      Export a file or directory represented by the given ID from a
+	      result bundle. Exports to the given path.
+
+       formatDescription get
+	      Print a description of the types making up the result bundle
+	      structure.  The root object of each result bundle is
+	      ActionsInvocationRecord.
+
+       formatDescription diff
+	      Compute a list of changes between the two provided format
+	      descriptions.
+
+       merge  Merge result bundles.
+
+       metadata get
+	      Print the metadata of the result bundle.
+
+       metadata addExternalLocation
+	      Record an external location associated with the result bundle.
+
+       version
+	      Print the version of the included XCResultKit package.
+
+       graph  Print the object graph of the given result bundle.
+
+       compare
+	      Compare the results of two different result bundles.
+
+OPTIONS
+       --schema
+	      Prints output format as JSON Schema.  --schema-version Specifies
+	      schema version in major.minor.patch format.  --path [path] Path
+	      to the result bundle.
+
+       --output-path [output_path]
+	      Output path for the exported file or directory.
+
+       --test-id [test_identifier]
+	      Provides the test identifier URL (or identifier string) that
+	      references a test.
+
+       --compact
+	      Provides the command output in a compact format.
+
+       --format [format_name]
+	      Controls output format.
+
+       --id [ID]
+	      Provides the desired object's ID (hash).
+
+       --type Used by export to identify whether to export the given data as a
+	      file or directory.
+
+       --only-failures
+	      Export only those attachments that are associated with test
+	      failures.
+
+       --summary
+	      Include the differential summary info in the output.
+
+       --test-failures
+	      Include the differential test failures info in the output.
+
+       --tests
+	      Include the differential tests info in the output.
+
+       --build-warnings
+	      Include the differential build warnings info in the output.
+
+       --analyzer-issues
+	      Include the differential analyzer issues info in the output.
+
+Apple Inc.			     2025		       xcresulttool(1)
