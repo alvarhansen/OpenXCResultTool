@@ -2,21 +2,14 @@ import Foundation
 import SQLite3
 
 struct TestResultsSummaryBuilder {
-    private let database: SQLiteDatabase
-    private let action: ActionRow
-    private let testPlanRuns: [TestPlanRunRow]
+    private let context: XCResultContext
 
     init(xcresultPath: String) throws {
-        let databasePath = TestResultsSummaryBuilder.databasePath(for: xcresultPath)
-        self.database = try SQLiteDatabase(path: databasePath)
-        guard let action = try TestResultsSummaryBuilder.fetchAction(from: database) else {
-            throw SQLiteError("No Actions rows found in \(databasePath).")
-        }
-        self.action = action
-        self.testPlanRuns = try TestResultsSummaryBuilder.fetchTestPlanRuns(from: database, actionId: action.id)
+        self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
     func summary() throws -> TestResultsSummary {
+        let action = context.action
         let totalTestCount = try countTotalTests()
         let summaryCounts = try resultCountsForSummary()
         let devicesAndConfigurations = try loadDevicesAndConfigurations()
@@ -48,20 +41,9 @@ struct TestResultsSummaryBuilder {
         )
     }
 
-    private static func databasePath(for path: String) -> String {
-        let url = URL(fileURLWithPath: path)
-        if url.pathExtension == "xcresult" {
-            return url.appendingPathComponent("database.sqlite3").path
-        }
-        if url.lastPathComponent == "database.sqlite3" {
-            return url.path
-        }
-        return url.appendingPathComponent("database.sqlite3").path
-    }
-
     private func countTotalTests() throws -> Int {
         let sql = "SELECT count(*) FROM TestCases;"
-        let count = try database.queryOne(sql) { statement in
+        let count = try context.database.queryOne(sql) { statement in
             SQLiteDatabase.int(statement, 0) ?? 0
         }
         return count ?? 0
@@ -74,7 +56,7 @@ struct TestResultsSummaryBuilder {
         WHERE destination_fk IS NULL AND configuration_fk IS NULL
         GROUP BY result;
         """
-        let rows = try database.query(sql) { statement in
+        let rows = try context.database.query(sql) { statement in
             let result = SQLiteDatabase.string(statement, 0) ?? ""
             let count = SQLiteDatabase.int(statement, 1) ?? 0
             return (result, count)
@@ -83,13 +65,14 @@ struct TestResultsSummaryBuilder {
     }
 
     private func loadDevicesAndConfigurations() throws -> [DevicesAndConfiguration] {
-        guard let runDestination = try fetchRunDestination(runDestinationId: action.runDestinationId) else {
+        let action = context.action
+        guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
             return []
         }
         let device = try loadDevice(for: runDestination)
 
-        return try testPlanRuns.map { planRun in
-            let configuration = try fetchConfiguration(configurationId: planRun.configurationId)
+        return try context.testPlanRuns.map { planRun in
+            let configuration = try context.fetchConfiguration(configurationId: planRun.configurationId)
             let counts = try resultCountsForTestPlanRun(planRun.id)
 
             return DevicesAndConfiguration(
@@ -115,7 +98,7 @@ struct TestResultsSummaryBuilder {
         WHERE TestableRuns.testPlanRun_fk = ?
         GROUP BY TestCaseRuns.result;
         """
-        let rows = try database.query(sql, binder: { statement in
+        let rows = try context.database.query(sql, binder: { statement in
             sqlite3_bind_int(statement, 1, Int32(testPlanRunId))
         }) { statement in
             let result = SQLiteDatabase.string(statement, 0) ?? ""
@@ -126,10 +109,10 @@ struct TestResultsSummaryBuilder {
     }
 
     private func loadDevice(for runDestination: RunDestinationRow) throws -> SummaryDevice {
-        guard let device = try fetchDevice(deviceId: runDestination.deviceId) else {
+        guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
             throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
         }
-        guard let platform = try fetchPlatform(platformId: device.platformId) else {
+        guard let platform = try context.fetchPlatform(platformId: device.platformId) else {
             throw SQLiteError("Missing platform with rowid \(device.platformId).")
         }
         let osBuildNumber = TestResultsSummaryBuilder.extractBuildNumber(device.operatingSystemVersionWithBuildNumber)
@@ -145,9 +128,10 @@ struct TestResultsSummaryBuilder {
     }
 
     private func buildEnvironmentDescription() throws -> String {
+        let action = context.action
         guard let hostId = action.hostDeviceId,
-              let hostDevice = try fetchDevice(deviceId: hostId),
-              let platform = try fetchPlatform(platformId: hostDevice.platformId) else {
+              let hostDevice = try context.fetchDevice(deviceId: hostId),
+              let platform = try context.fetchPlatform(platformId: hostDevice.platformId) else {
             return action.scheme
         }
         return "\(action.scheme) · Built with \(platform.userDescription) \(hostDevice.operatingSystemVersion)"
@@ -172,7 +156,7 @@ struct TestResultsSummaryBuilder {
         ORDER BY TestIssues.rowid;
         """
 
-        return try database.query(sql) { statement in
+        return try context.database.query(sql) { statement in
             let compact = SQLiteDatabase.string(statement, 0)
             let detailed = SQLiteDatabase.string(statement, 1)
             let sanitized = SQLiteDatabase.string(statement, 2)
@@ -207,7 +191,7 @@ struct TestResultsSummaryBuilder {
 
     private func loadDynamicParameterStatistic() throws -> SummaryStatistic? {
         let testCountSql = "SELECT count(DISTINCT testCase_fk) FROM Parameters;"
-        let testCount = try database.queryOne(testCountSql) { statement in
+        let testCount = try context.database.queryOne(testCountSql) { statement in
             SQLiteDatabase.int(statement, 0) ?? 0
         } ?? 0
         guard testCount > 0 else { return nil }
@@ -217,7 +201,7 @@ struct TestResultsSummaryBuilder {
         FROM TestCaseRuns
         WHERE testCase_fk IN (SELECT DISTINCT testCase_fk FROM Parameters);
         """
-        let runCount = try database.queryOne(runCountSql) { statement in
+        let runCount = try context.database.queryOne(runCountSql) { statement in
             SQLiteDatabase.int(statement, 0) ?? 0
         } ?? 0
 
@@ -228,7 +212,7 @@ struct TestResultsSummaryBuilder {
 
     private func loadPerformanceMetricsStatistic() throws -> SummaryStatistic? {
         let runCountSql = "SELECT count(DISTINCT testCaseRun_fk) FROM PerformanceMetrics;"
-        let runCount = try database.queryOne(runCountSql) { statement in
+        let runCount = try context.database.queryOne(runCountSql) { statement in
             SQLiteDatabase.int(statement, 0) ?? 0
         } ?? 0
         guard runCount > 0 else { return nil }
@@ -238,7 +222,7 @@ struct TestResultsSummaryBuilder {
         FROM TestCaseRuns
         WHERE rowid IN (SELECT DISTINCT testCaseRun_fk FROM PerformanceMetrics);
         """
-        let testCount = try database.queryOne(testCountSql) { statement in
+        let testCount = try context.database.queryOne(testCountSql) { statement in
             SQLiteDatabase.int(statement, 0) ?? 0
         } ?? 0
 
@@ -247,122 +231,12 @@ struct TestResultsSummaryBuilder {
         return SummaryStatistic(subtitle: subtitle, title: title)
     }
 
-    private func fetchRunDestination(runDestinationId: Int?) throws -> RunDestinationRow? {
-        guard let runDestinationId else { return nil }
-        let sql = "SELECT rowid, name, architecture, device_fk FROM RunDestinations WHERE rowid = ?;"
-        return try database.queryOne(sql, binder: { statement in
-            sqlite3_bind_int(statement, 1, Int32(runDestinationId))
-        }) { statement in
-            RunDestinationRow(
-                id: SQLiteDatabase.int(statement, 0) ?? 0,
-                name: SQLiteDatabase.string(statement, 1) ?? "",
-                architecture: SQLiteDatabase.string(statement, 2) ?? "",
-                deviceId: SQLiteDatabase.int(statement, 3) ?? 0
-            )
-        }
-    }
-
-    private func fetchConfiguration(configurationId: Int) throws -> ConfigurationRow {
-        let sql = "SELECT rowid, name FROM TestPlanConfigurations WHERE rowid = ?;"
-        let configuration = try database.queryOne(sql, binder: { statement in
-            sqlite3_bind_int(statement, 1, Int32(configurationId))
-        }) { statement in
-            ConfigurationRow(
-                id: SQLiteDatabase.int(statement, 0) ?? 0,
-                name: SQLiteDatabase.string(statement, 1) ?? ""
-            )
-        }
-        return configuration ?? ConfigurationRow(id: configurationId, name: "")
-    }
-
-    private func fetchDevice(deviceId: Int) throws -> DeviceRow? {
-        let sql = """
-        SELECT rowid, identifier, name, modelName, operatingSystemVersion,
-               operatingSystemVersionWithBuildNumber, platform_fk
-        FROM Devices
-        WHERE rowid = ?;
-        """
-        return try database.queryOne(sql, binder: { statement in
-            sqlite3_bind_int(statement, 1, Int32(deviceId))
-        }) { statement in
-            DeviceRow(
-                id: SQLiteDatabase.int(statement, 0) ?? 0,
-                identifier: SQLiteDatabase.string(statement, 1) ?? "",
-                name: SQLiteDatabase.string(statement, 2) ?? "",
-                modelName: SQLiteDatabase.string(statement, 3) ?? "",
-                operatingSystemVersion: SQLiteDatabase.string(statement, 4) ?? "",
-                operatingSystemVersionWithBuildNumber: SQLiteDatabase.string(statement, 5) ?? "",
-                platformId: SQLiteDatabase.int(statement, 6) ?? 0
-            )
-        }
-    }
-
-    private func fetchPlatform(platformId: Int) throws -> PlatformRow? {
-        let sql = "SELECT rowid, userDescription FROM Platforms WHERE rowid = ?;"
-        return try database.queryOne(sql, binder: { statement in
-            sqlite3_bind_int(statement, 1, Int32(platformId))
-        }) { statement in
-            PlatformRow(
-                id: SQLiteDatabase.int(statement, 0) ?? 0,
-                userDescription: SQLiteDatabase.string(statement, 1) ?? ""
-            )
-        }
-    }
-
-    private static func fetchAction(from database: SQLiteDatabase) throws -> ActionRow? {
-        let sql = """
-        SELECT Actions.rowid,
-               Actions.name,
-               Actions.started,
-               Actions.finished,
-               Actions.runDestination_fk,
-               Actions.host_fk,
-               Invocations.scheme,
-               TestPlans.name
-        FROM Actions
-        JOIN Invocations ON Invocations.rowid = Actions.invocation_fk
-        JOIN TestPlans ON TestPlans.rowid = Actions.testPlan_fk
-        ORDER BY Actions.orderInInvocation
-        LIMIT 1;
-        """
-        return try database.queryOne(sql) { statement in
-            ActionRow(
-                id: SQLiteDatabase.int(statement, 0) ?? 0,
-                name: SQLiteDatabase.string(statement, 1) ?? "",
-                started: SQLiteDatabase.double(statement, 2) ?? 0,
-                finished: SQLiteDatabase.double(statement, 3) ?? 0,
-                runDestinationId: SQLiteDatabase.int(statement, 4),
-                hostDeviceId: SQLiteDatabase.int(statement, 5),
-                scheme: SQLiteDatabase.string(statement, 6) ?? "",
-                testPlanName: SQLiteDatabase.string(statement, 7) ?? ""
-            )
-        }
-    }
-
-    private static func fetchTestPlanRuns(from database: SQLiteDatabase, actionId: Int) throws -> [TestPlanRunRow] {
-        let sql = """
-        SELECT rowid, configuration_fk, orderInAction
-        FROM TestPlanRuns
-        WHERE action_fk = ?
-        ORDER BY orderInAction;
-        """
-        return try database.query(sql, binder: { statement in
-            sqlite3_bind_int(statement, 1, Int32(actionId))
-        }) { statement in
-            TestPlanRunRow(
-                id: SQLiteDatabase.int(statement, 0) ?? 0,
-                configurationId: SQLiteDatabase.int(statement, 1) ?? 0,
-                orderInAction: SQLiteDatabase.int(statement, 2) ?? 0
-            )
-        }
-    }
-
     private static func toUnixTime(_ coreDataTime: Double) -> Double {
         let unixTime = coreDataTime + 978_307_200
         return (unixTime * 1000).rounded() / 1000
     }
 
-    private static func extractBuildNumber(_ value: String) -> String {
+    static func extractBuildNumber(_ value: String) -> String {
         guard let open = value.firstIndex(of: "("),
               let close = value.firstIndex(of: ")"),
               open < close else {
@@ -402,48 +276,4 @@ private struct ResultCounts {
         self.skippedTests = skipped
         self.expectedFailures = expected
     }
-}
-
-private struct ActionRow {
-    let id: Int
-    let name: String
-    let started: Double
-    let finished: Double
-    let runDestinationId: Int?
-    let hostDeviceId: Int?
-    let scheme: String
-    let testPlanName: String
-}
-
-private struct TestPlanRunRow {
-    let id: Int
-    let configurationId: Int
-    let orderInAction: Int
-}
-
-private struct RunDestinationRow {
-    let id: Int
-    let name: String
-    let architecture: String
-    let deviceId: Int
-}
-
-private struct ConfigurationRow {
-    let id: Int
-    let name: String
-}
-
-private struct DeviceRow {
-    let id: Int
-    let identifier: String
-    let name: String
-    let modelName: String
-    let operatingSystemVersion: String
-    let operatingSystemVersionWithBuildNumber: String
-    let platformId: Int
-}
-
-private struct PlatformRow {
-    let id: Int
-    let userDescription: String
 }

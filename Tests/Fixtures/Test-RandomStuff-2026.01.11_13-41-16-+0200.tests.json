@@ -1,0 +1,86 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "deviceName" : "iPhone 17 Pro",
+      "modelName" : "iPhone 17 Pro",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "0,00052s",
+                  "durationInSeconds" : 0.0005190372467041016,
+                  "name" : "testExample()",
+                  "nodeIdentifier" : "RandomStuffTests/testExample()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,00032s",
+                  "durationInSeconds" : 0.0003170967102050781,
+                  "name" : "testExample2()",
+                  "nodeIdentifier" : "RandomStuffTests/testExample2()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample2",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "name" : "RandomStuffTests.swift:38: XCTAssertEqual failed: (\"1\") is not equal to (\"2\")",
+                      "nodeType" : "Failure Message"
+                    }
+                  ],
+                  "duration" : "0,13s",
+                  "durationInSeconds" : 0.12889504432678223,
+                  "name" : "testFoo()",
+                  "nodeIdentifier" : "RandomStuffTests/testFoo()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
+                  "nodeType" : "Test Case",
+                  "result" : "Failed"
+                },
+                {
+                  "duration" : "0,26s",
+                  "durationInSeconds" : 0.25846803188323975,
+                  "name" : "testPerformanceExample()",
+                  "nodeIdentifier" : "RandomStuffTests/testPerformanceExample()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testPerformanceExample",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "RandomStuffTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests",
+              "nodeType" : "Test Suite",
+              "result" : "Failed"
+            }
+          ],
+          "name" : "RandomStuffTests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Failed"
+        }
+      ],
+      "name" : "RandomStuff",
+      "nodeType" : "Test Plan",
+      "result" : "Failed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}
