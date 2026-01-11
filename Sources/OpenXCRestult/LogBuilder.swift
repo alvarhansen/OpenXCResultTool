@@ -4,45 +4,43 @@ struct LogBuilder {
     let xcresultPath: String
 
     func log(type: LogType, compact: Bool) throws -> Data {
-        let xcrunPath = "/usr/bin/xcrun"
-        guard FileManager.default.isExecutableFile(atPath: xcrunPath) else {
-            throw LogError("xcrun is required to read logs from xcresult bundles.")
+        let store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
+        let logId = try resolveLogId(store: store, type: type)
+        let rawValue = try store.loadObject(id: logId)
+        let dateParser = XCResultDateParser()
+        let json = rawValue.toLogJSONValue(dateParser: dateParser)
+
+        let options: JSONSerialization.WritingOptions = compact ? [] : [.prettyPrinted]
+        return try JSONSerialization.data(withJSONObject: json, options: options)
+    }
+
+    private func resolveLogId(store: XCResultFileBackedStore, type: LogType) throws -> String {
+        let root = try store.loadObject(id: store.rootId)
+        let actions = root.value(for: "actions")?.arrayValues ?? []
+        guard let action = actions.first else {
+            throw LogError("No actions found in result bundle.")
         }
 
-        var arguments = [
-            "xcresulttool",
-            "get",
-            "log",
-            "--path",
-            xcresultPath,
-            "--format",
-            "json",
-            "--type",
-            type.rawValue
-        ]
-        if compact {
-            arguments.append("--compact")
+        let actionResult = action.value(for: "actionResult")
+        let buildResult = action.value(for: "buildResult")
+        let logRef: XCResultRawValue?
+
+        switch type {
+        case .action:
+            logRef = actionResult?.value(for: "logRef")
+        case .build:
+            logRef = buildResult?.value(for: "logRef")
+        case .console:
+            logRef = nil
         }
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: xcrunPath)
-        process.arguments = arguments
-
-        let outputPipe = Pipe()
-        process.standardOutput = outputPipe
-        process.standardError = outputPipe
-
-        try process.run()
-
-        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        if process.terminationStatus != 0 {
-            let message = String(data: output, encoding: .utf8) ?? ""
-            throw LogError("xcresulttool get log failed: \(message)")
+        guard let logRef else {
+            throw LogError("No \(type.rawValue) log available.")
         }
-
-        return output
+        guard let id = logRef.value(for: "id")?.stringValue else {
+            throw LogError("Missing log reference id for \(type.rawValue) log.")
+        }
+        return id
     }
 }
 
