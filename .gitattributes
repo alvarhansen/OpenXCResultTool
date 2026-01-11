@@ -1,0 +1,2 @@
+# Store Xcode xcresult bundles in Git LFS.
+Tests/Fixtures/*.xcresult/** filter=lfs diff=lfs merge=lfs -text
