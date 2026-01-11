@@ -25,6 +25,61 @@ final class OpenXCRestultTests: XCTestCase {
         )
     }
 
+    func testTestDetailsMatchesFixture() throws {
+        let snapshots = [
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffUITestsLaunchTests/testLaunch",
+                snapshotSuffix: "test-details.testLaunch"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffUITests/testLaunchPerformance()",
+                snapshotSuffix: "test-details.testLaunchPerformance"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffTests/testExample()",
+                snapshotSuffix: "test-details.testExample"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testExpectedFailure()",
+                snapshotSuffix: "test-details.testExpectedFailure"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testExpectedFailure2()",
+                snapshotSuffix: "test-details.testExpectedFailure2"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testFoo()",
+                snapshotSuffix: "test-details.testFoo"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testSkippedTest()",
+                snapshotSuffix: "test-details.testSkippedTest"
+            ),
+        ]
+
+        for snapshot in snapshots {
+            let fixtureURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).xcresult")
+            let snapshotURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).\(snapshot.snapshotSuffix).json")
+
+            let builder = try TestResultsTestDetailsBuilder(xcresultPath: fixtureURL.path)
+            let details = try builder.testDetails(testId: snapshot.testId)
+            let actual = try encode(details)
+            let expected = try Data(contentsOf: snapshotURL)
+
+            let normalizedActual = try normalizedJSON(actual)
+            let normalizedExpected = try normalizedJSON(expected)
+
+            XCTAssertEqual(normalizedActual, normalizedExpected, "Mismatch for fixture \(snapshot.fixtureName) (\(snapshot.snapshotSuffix))")
+        }
+    }
+
     private func fixturesDirectory() -> URL {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         return root.appendingPathComponent("Tests").appendingPathComponent("Fixtures")
@@ -66,4 +121,10 @@ final class OpenXCRestultTests: XCTestCase {
         let object = try JSONSerialization.jsonObject(with: data, options: [])
         return try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
     }
+}
+
+private struct TestDetailsSnapshot {
+    let fixtureName: String
+    let testId: String
+    let snapshotSuffix: String
 }

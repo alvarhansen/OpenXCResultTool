@@ -53,7 +53,7 @@ struct TestResultsTestsBuilder {
         let planName = context.action.testPlanName
         let testables = try fetchTestables()
         let testableNodes = try testables.map { try buildTestableNode($0) }
-        let planResult = aggregateResult(from: testableNodes.compactMap { $0.result })
+        let planResult = TestResultFormatter.aggregate(testableNodes.compactMap { $0.result })
 
         let planNode = TestNode(
             children: testableNodes,
@@ -73,7 +73,7 @@ struct TestResultsTestsBuilder {
         let suites = try fetchSuites(for: testable.id)
         let suiteTree = try buildSuiteTree(suites: suites, testableId: testable.id)
         let suiteResults = suiteTree.map { $0.result }.compactMap { $0 }
-        let result = aggregateResult(from: suiteResults)
+        let result = TestResultFormatter.aggregate(suiteResults)
 
         return TestNode(
             children: suiteTree,
@@ -104,7 +104,7 @@ struct TestResultsTestsBuilder {
         let childSuiteNodes = try childSuites.map { try buildSuiteNode($0, grouped: grouped, testableId: testableId) }
         let testCaseNodes = try buildTestCaseNodes(for: suite, testableId: testableId)
         let children = childSuiteNodes + testCaseNodes
-        let result = aggregateResult(from: children.compactMap { $0.result })
+        let result = TestResultFormatter.aggregate(children.compactMap { $0.result })
 
         return TestNode(
             children: children.isEmpty ? nil : children,
@@ -129,10 +129,10 @@ struct TestResultsTestsBuilder {
     private func buildTestCaseNode(_ testCase: TestCaseRow, testableRunIds: [Int]) throws -> TestNode {
         let runs = try fetchTestCaseRuns(testCaseId: testCase.id, testableRunIds: testableRunIds)
         let averageDuration = runs.isEmpty ? 0 : runs.map(\.duration).reduce(0, +) / Double(runs.count)
-        let durationString = DurationFormatter.format(seconds: averageDuration)
+        let durationString = RunDurationFormatter.format(seconds: averageDuration)
 
-        let runResults = runs.map { mapResult($0.result) }
-        let result = aggregateResult(from: runResults)
+        let runResults = runs.map { TestResultFormatter.mapResult($0.result) }
+        let result = TestResultFormatter.aggregate(runResults)
 
         var children: [TestNode] = []
         let argumentsNodes = try buildArgumentNodes(for: runs)
@@ -161,8 +161,9 @@ struct TestResultsTestsBuilder {
         var nodes: [TestNode] = []
         for run in runs {
             guard let args = arguments[run.id], !args.isEmpty else { continue }
-            let name = args.map { argumentDisplayName($0) }.joined(separator: ", ")
-            let durationString = DurationFormatter.format(seconds: run.duration)
+            let name = args.map { ArgumentNameFormatter.displayName(label: $0.label, value: $0.value) }
+                .joined(separator: ", ")
+            let durationString = RunDurationFormatter.format(seconds: run.duration)
             let node = TestNode(
                 children: nil,
                 duration: durationString,
@@ -171,7 +172,7 @@ struct TestResultsTestsBuilder {
                 nodeIdentifier: nil,
                 nodeIdentifierURL: nil,
                 nodeType: "Arguments",
-                result: mapResult(run.result)
+                result: TestResultFormatter.mapResult(run.result)
             )
             nodes.append(node)
         }
@@ -182,7 +183,7 @@ struct TestResultsTestsBuilder {
     private func buildFailureNodes(for runs: [TestCaseRunRow]) throws -> [TestNode] {
         var nodes: [TestNode] = []
         for run in runs {
-            let result = mapResult(run.result)
+            let result = TestResultFormatter.mapResult(run.result)
             switch result {
             case "Failed":
                 let issues = try fetchTestIssues(testCaseRunId: run.id)
@@ -434,67 +435,6 @@ struct TestResultsTestsBuilder {
         }
     }
 
-    private func mapResult(_ result: String) -> String {
-        switch result {
-        case "Success":
-            return "Passed"
-        case "Failure":
-            return "Failed"
-        default:
-            return result
-        }
-    }
-
-    private func aggregateResult(from results: [String]) -> String? {
-        if results.contains("Failed") {
-            return "Failed"
-        }
-        if results.contains("Skipped") {
-            return "Skipped"
-        }
-        if results.contains("Expected Failure") {
-            return "Expected Failure"
-        }
-        if results.contains("Passed") {
-            return "Passed"
-        }
-        return nil
-    }
-
-    private func argumentDisplayName(_ argument: ArgumentRow) -> String {
-        switch argument.label {
-        case "XCUIAppearanceMode":
-            return appearanceName(from: argument.value)
-        case "XCUIDeviceOrientation":
-            return orientationName(from: argument.value)
-        default:
-            return argument.value
-        }
-    }
-
-    private func appearanceName(from value: String) -> String {
-        switch value {
-        case "1":
-            return "Light Appearance"
-        case "2":
-            return "Dark Appearance"
-        case "4":
-            return "Unspecified"
-        default:
-            return value
-        }
-    }
-
-    private func orientationName(from value: String) -> String {
-        switch value {
-        case "1":
-            return "Portrait"
-        case "4":
-            return "Landscape Right"
-        default:
-            return value
-        }
-    }
 }
 
 private struct TestableRow {
@@ -542,33 +482,4 @@ private struct TestIssueRow {
 private struct SourceCodeLocationRow {
     let filePath: String
     let lineNumber: Int
-}
-
-private struct DurationFormatter {
-    private static let formatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.usesGroupingSeparator = false
-        formatter.decimalSeparator = ","
-        formatter.usesSignificantDigits = true
-        formatter.minimumSignificantDigits = 2
-        formatter.maximumSignificantDigits = 2
-        return formatter
-    }()
-
-    static func format(seconds: Double) -> String {
-        if seconds >= 60 {
-            let totalSeconds = Int(seconds.rounded(.down))
-            let minutes = totalSeconds / 60
-            let remaining = totalSeconds % 60
-            return "\(minutes)m \(remaining)s"
-        }
-        if seconds >= 1 {
-            let whole = Int(seconds.rounded(.down))
-            return "\(whole)s"
-        }
-        let number = NSNumber(value: seconds)
-        let value = formatter.string(from: number) ?? String(format: "%.2f", seconds)
-        return "\(value)s"
-    }
 }

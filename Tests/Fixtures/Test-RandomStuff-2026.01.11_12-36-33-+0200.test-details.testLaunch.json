@@ -1,0 +1,76 @@
+{
+  "arguments" : [
+    {
+      "value" : "Light Appearance"
+    },
+    {
+      "value" : "Unspecified"
+    },
+    {
+      "value" : "Dark Appearance"
+    },
+    {
+      "value" : "Landscape Right"
+    },
+    {
+      "value" : "Portrait"
+    }
+  ],
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "deviceName" : "iPhone 17 Pro",
+      "modelName" : "iPhone 17 Pro",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "duration" : "Average duration 16 seconds",
+  "durationInSeconds" : 16.214727520942688,
+  "hasMediaAttachments" : true,
+  "hasPerformanceMetrics" : false,
+  "startTime" : 1768127888.943,
+  "testDescription" : "Test case with 4 runs",
+  "testIdentifier" : "RandomStuffUITestsLaunchTests/testLaunch",
+  "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITestsLaunchTests/testLaunch",
+  "testName" : "testLaunch()",
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ],
+  "testResult" : "Passed",
+  "testRuns" : [
+    {
+      "duration" : "13s",
+      "durationInSeconds" : 13.709094047546387,
+      "name" : "Light Appearance, Portrait",
+      "nodeType" : "Arguments",
+      "result" : "Passed"
+    },
+    {
+      "duration" : "26s",
+      "durationInSeconds" : 26.4132159948349,
+      "name" : "Unspecified, Portrait",
+      "nodeType" : "Arguments",
+      "result" : "Passed"
+    },
+    {
+      "duration" : "12s",
+      "durationInSeconds" : 12.184519052505493,
+      "name" : "Dark Appearance, Portrait",
+      "nodeType" : "Arguments",
+      "result" : "Passed"
+    },
+    {
+      "duration" : "12s",
+      "durationInSeconds" : 12.552080988883972,
+      "name" : "Dark Appearance, Landscape Right",
+      "nodeType" : "Arguments",
+      "result" : "Passed"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "deviceName" : "iPhone 17 Pro",
+      "modelName" : "iPhone 17 Pro",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "duration" : "Ran for 0,0048 seconds",
+  "durationInSeconds" : 0.00476992130279541,
+  "hasMediaAttachments" : false,
+  "hasPerformanceMetrics" : false,
+  "testDescription" : "Test case with 1 run",
+  "testIdentifier" : "RandomStuffTests/testSkippedTest()",
+  "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testSkippedTest",
+  "testName" : "testSkippedTest()",
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ],
+  "testResult" : "Skipped",
+  "testRuns" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "name" : "Test skipped - Required API is not available for this test.",
+              "nodeType" : "Test Case Run",
+              "result" : "Skipped"
+            }
+          ],
+          "duration" : "0,0048s",
+          "durationInSeconds" : 0.00476992130279541,
+          "name" : "Test Scheme Action",
+          "nodeIdentifier" : "1",
+          "nodeType" : "Test Plan Configuration",
+          "result" : "Skipped"
+        }
+      ],
+      "details" : "iOS Simulator 26.2",
+      "duration" : "0,0048s",
+      "durationInSeconds" : 0.00476992130279541,
+      "name" : "iPhone 17 Pro",
+      "nodeIdentifier" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "nodeType" : "Device",
+      "result" : "Skipped"
+    }
+  ]
+}
