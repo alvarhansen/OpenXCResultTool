@@ -118,3 +118,6 @@ Next subcommands checklist
 	•	[x] get test-results activities
 	•	[x] get test-results metrics
 	•	[x] get test-results insights
+
+Pending investigations
+	•	[ ] Incomplete: run timeout scheme with test repetition flags (`-test-iterations`, `-test-repetition-mode retry-on-failure`). Xcode 26.2 `xcodebuild` CLI rejects `-test-repetition-mode`; revisit with a version that supports it or via test plans.
