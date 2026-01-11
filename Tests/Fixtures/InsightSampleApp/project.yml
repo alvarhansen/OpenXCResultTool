@@ -23,6 +23,16 @@ schemes:
         - InsightSampleAppUITests
       environmentVariables:
         INSIGHT_FORCE_FAILURE: "1"
+  InsightSampleAppFlaky:
+    build:
+      targets:
+        InsightSampleApp: all
+    test:
+      targets:
+        - InsightSampleAppTests
+        - InsightSampleAppUITests
+      environmentVariables:
+        INSIGHT_FLAKY: "1"
 targets:
   InsightSampleApp:
     type: application

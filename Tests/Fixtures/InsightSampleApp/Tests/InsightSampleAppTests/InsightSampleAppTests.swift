@@ -37,4 +37,16 @@ final class InsightSampleAppTests: XCTestCase {
             XCTAssertTrue(true)
         }
     }
+
+    func testFlakyExample() {
+        guard ProcessInfo.processInfo.environment["INSIGHT_FLAKY"] == "1" else {
+            XCTAssertTrue(true)
+            return
+        }
+
+        let shouldFail = Int(Date().timeIntervalSince1970) % 2 == 0
+        if shouldFail {
+            XCTFail("Flaky failure for insights.")
+        }
+    }
 }
