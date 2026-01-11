@@ -12,7 +12,7 @@ struct OpenXCRestultCLI: ParsableCommand {
 struct Get: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Fetch data from an xcresult bundle.",
-        subcommands: [TestResults.self]
+        subcommands: [TestResults.self, LogCommand.self]
     )
 }
 
@@ -294,3 +294,46 @@ struct InsightsCommand: ParsableCommand {
         FileHandle.standardOutput.write(Data([0x0A]))
     }
 }
+
+struct LogCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "log",
+        abstract: "Print build, action, or console logs."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("type"), help: "Log type (build, action, console).")
+    var type: LogType = .build
+
+    @Option(name: .customLong("format"), help: "Output format (json).")
+    var format: String = "json"
+
+    @Flag(name: .customLong("compact"), help: "Emit compact JSON output.")
+    var compact = false
+
+    @Flag(name: .customLong("schema"), help: "Print output as JSON Schema (unsupported).")
+    var schema = false
+
+    @Option(name: .customLong("schema-version"), help: "Schema version in major.minor.patch format (unsupported).")
+    var schemaVersion: String?
+
+    func run() throws {
+        guard !schema, schemaVersion == nil else {
+            throw ValidationError("Schema output is not supported yet.")
+        }
+        guard format == "json" else {
+            throw ValidationError("Only --format json is supported.")
+        }
+
+        let builder = LogBuilder(xcresultPath: path)
+        let data = try builder.log(type: type, compact: compact)
+        FileHandle.standardOutput.write(data)
+        if data.last != 0x0A {
+            FileHandle.standardOutput.write(Data([0x0A]))
+        }
+    }
+}
+
+extension LogType: ExpressibleByArgument {}

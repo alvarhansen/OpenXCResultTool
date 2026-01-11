@@ -333,6 +333,45 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolLogParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let logTypes: [XCResulttoolLogType] = [.build, .action, .console]
+        let fixtures = try fixtureBundles()
+
+        for fixtureURL in fixtures {
+            for logType in logTypes {
+                do {
+                    let expected = try xcresulttoolLogJSON(
+                        xcrunURL: xcrunURL,
+                        fixtureURL: fixtureURL,
+                        logType: logType
+                    )
+                    let actual = try openXcresultLogOutput(
+                        fixturePath: fixtureURL.path,
+                        logType: logType
+                    )
+
+                    let normalizedActual = try normalizedJSON(actual)
+                    let normalizedExpected = try normalizedJSON(expected)
+
+                    XCTAssertEqual(
+                        normalizedActual,
+                        normalizedExpected,
+                        "Mismatch for fixture \(fixtureURL.lastPathComponent) (log \(logType.rawValue))"
+                    )
+                } catch {
+                    XCTAssertThrowsError(
+                        try openXcresultLogOutput(fixturePath: fixtureURL.path, logType: logType),
+                        "Expected log error for \(fixtureURL.lastPathComponent) (log \(logType.rawValue))"
+                    )
+                }
+            }
+        }
+    }
+
     private func fixturesDirectory() -> URL {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         return root.appendingPathComponent("Tests").appendingPathComponent("Fixtures")
@@ -519,6 +558,42 @@ final class OpenXCRestultTests: XCTestCase {
         return output
     }
 
+    private func xcresulttoolLogJSON(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        logType: XCResulttoolLogType
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "get",
+            "log",
+            "--path",
+            fixtureURL.path,
+            "--format",
+            "json",
+            "--type",
+            logType.rawValue
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool log failed for \(fixtureURL.lastPathComponent) (\(logType.rawValue)): \(error)")
+        }
+
+        return output
+    }
+
     private func openXcresultOutput(
         fixturePath: String,
         command: XCResulttoolCommand,
@@ -551,6 +626,14 @@ final class OpenXCRestultTests: XCTestCase {
             return try encode(builder.activities(testId: testId))
         }
     }
+
+    private func openXcresultLogOutput(
+        fixturePath: String,
+        logType: XCResulttoolLogType
+    ) throws -> Data {
+        let builder = LogBuilder(xcresultPath: fixturePath)
+        return try builder.log(type: logType.toLogType(), compact: false)
+    }
 }
 
 private enum XCResulttoolCommand: String {
@@ -560,6 +643,16 @@ private enum XCResulttoolCommand: String {
     case metrics
     case testDetails = "test-details"
     case activities = "activities"
+}
+
+private enum XCResulttoolLogType: String {
+    case build
+    case action
+    case console
+
+    func toLogType() -> LogType {
+        LogType(rawValue: rawValue) ?? .build
+    }
 }
 
 private struct ProcessFailure: Error, CustomStringConvertible {
