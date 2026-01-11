@@ -212,6 +212,74 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolTestDetailsParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let snapshots = [
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffUITestsLaunchTests/testLaunch",
+                snapshotSuffix: "test-details.testLaunch"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffUITests/testLaunchPerformance()",
+                snapshotSuffix: "test-details.testLaunchPerformance"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffTests/testExample()",
+                snapshotSuffix: "test-details.testExample"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testExpectedFailure()",
+                snapshotSuffix: "test-details.testExpectedFailure"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testExpectedFailure2()",
+                snapshotSuffix: "test-details.testExpectedFailure2"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testFoo()",
+                snapshotSuffix: "test-details.testFoo"
+            ),
+            TestDetailsSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testSkippedTest()",
+                snapshotSuffix: "test-details.testSkippedTest"
+            ),
+        ]
+
+        for snapshot in snapshots {
+            let fixtureURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).xcresult")
+            let expected = try xcresulttoolJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                command: .testDetails,
+                testId: snapshot.testId
+            )
+            let actual = try openXcresultOutput(
+                fixturePath: fixtureURL.path,
+                command: .testDetails,
+                testId: snapshot.testId
+            )
+
+            let normalizedActual = try normalizedParityJSON(actual, command: .testDetails)
+            let normalizedExpected = try normalizedParityJSON(expected, command: .testDetails)
+
+            XCTAssertEqual(
+                normalizedActual,
+                normalizedExpected,
+                "Mismatch for fixture \(snapshot.fixtureName) (\(snapshot.snapshotSuffix))"
+            )
+        }
+    }
+
     private func fixturesDirectory() -> URL {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         return root.appendingPathComponent("Tests").appendingPathComponent("Fixtures")
@@ -270,6 +338,8 @@ final class OpenXCRestultTests: XCTestCase {
         switch command {
         case .insights:
             return try normalizedInsightsJSON(data)
+        case .testDetails:
+            return try normalizedTestDetailsJSON(data)
         default:
             return try normalizedJSON(data)
         }
@@ -284,6 +354,24 @@ final class OpenXCRestultTests: XCTestCase {
         dict["commonFailureInsights"] = normalizeInsightsArray(dict["commonFailureInsights"])
         dict["failureDistributionInsights"] = normalizeInsightsArray(dict["failureDistributionInsights"])
         dict["longestTestRunsInsights"] = normalizeInsightsArray(dict["longestTestRunsInsights"])
+
+        return try JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys])
+    }
+
+    private func normalizedTestDetailsJSON(_ data: Data) throws -> Data {
+        let object = try JSONSerialization.jsonObject(with: data, options: [])
+        guard var dict = object as? [String: Any] else {
+            return try normalizedJSON(data)
+        }
+
+        if var arguments = dict["arguments"] as? [[String: Any]] {
+            arguments.sort {
+                let left = $0["value"] as? String ?? ""
+                let right = $1["value"] as? String ?? ""
+                return left < right
+            }
+            dict["arguments"] = arguments
+        }
 
         return try JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys])
     }
@@ -316,11 +404,12 @@ final class OpenXCRestultTests: XCTestCase {
     private func xcresulttoolJSON(
         xcrunURL: URL,
         fixtureURL: URL,
-        command: XCResulttoolCommand
+        command: XCResulttoolCommand,
+        testId: String? = nil
     ) throws -> Data {
         let process = Process()
         process.executableURL = xcrunURL
-        process.arguments = [
+        var arguments = [
             "xcresulttool",
             "get",
             "test-results",
@@ -330,6 +419,10 @@ final class OpenXCRestultTests: XCTestCase {
             "--format",
             "json"
         ]
+        if let testId {
+            arguments.append(contentsOf: ["--test-id", testId])
+        }
+        process.arguments = arguments
 
         let outputPipe = Pipe()
         process.standardOutput = outputPipe
@@ -350,7 +443,8 @@ final class OpenXCRestultTests: XCTestCase {
 
     private func openXcresultOutput(
         fixturePath: String,
-        command: XCResulttoolCommand
+        command: XCResulttoolCommand,
+        testId: String? = nil
     ) throws -> Data {
         switch command {
         case .summary:
@@ -365,6 +459,12 @@ final class OpenXCRestultTests: XCTestCase {
         case .metrics:
             let builder = try TestResultsMetricsBuilder(xcresultPath: fixturePath)
             return try encode(builder.metrics(testId: nil))
+        case .testDetails:
+            guard let testId else {
+                throw ProcessFailure("test-id is required for test-details output.")
+            }
+            let builder = try TestResultsTestDetailsBuilder(xcresultPath: fixturePath)
+            return try encode(builder.testDetails(testId: testId))
         }
     }
 }
@@ -374,6 +474,7 @@ private enum XCResulttoolCommand: String {
     case tests
     case insights
     case metrics
+    case testDetails = "test-details"
 }
 
 private struct ProcessFailure: Error, CustomStringConvertible {

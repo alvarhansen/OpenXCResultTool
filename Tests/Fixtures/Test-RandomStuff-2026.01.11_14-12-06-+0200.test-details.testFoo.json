@@ -1,48 +1,27 @@
 {
-  "devices" : [
-    {
-      "architecture" : "arm64",
-      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
-      "deviceName" : "iPhone 17 Pro",
-      "modelName" : "iPhone 17 Pro",
-      "osBuildNumber" : "23C54",
-      "osVersion" : "26.2",
-      "platform" : "iOS Simulator"
-    }
-  ],
   "duration" : "Ran for 0,0021 seconds",
-  "durationInSeconds" : 0.0021200180053710938,
-  "hasMediaAttachments" : false,
-  "hasPerformanceMetrics" : false,
   "testDescription" : "Test case with 1 run",
-  "testIdentifier" : "RandomStuffTests/testFoo()",
-  "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
   "testName" : "testFoo()",
-  "testPlanConfigurations" : [
-    {
-      "configurationId" : "1",
-      "configurationName" : "Test Scheme Action"
-    }
-  ],
   "testResult" : "Failed",
+  "hasMediaAttachments" : false,
   "testRuns" : [
     {
       "children" : [
         {
+          "duration" : "0,0021s",
           "children" : [
             {
+              "result" : "Failed",
+              "nodeType" : "Test Case Run",
               "children" : [
                 {
-                  "name" : "RandomStuffTests.testFoo()",
-                  "nodeType" : "Source Code Reference"
+                  "nodeType" : "Source Code Reference",
+                  "name" : "RandomStuffTests.testFoo()"
                 }
               ],
-              "name" : "XCTAssertEqual failed: (\"1\") is not equal to (\"2\")",
-              "nodeType" : "Test Case Run",
-              "result" : "Failed"
+              "name" : "XCTAssertEqual failed: (\"1\") is not equal to (\"2\")"
             }
           ],
-          "duration" : "0,0021s",
           "durationInSeconds" : 0.0021200180053710938,
           "name" : "Test Scheme Action",
           "nodeIdentifier" : "1",
@@ -50,13 +29,34 @@
           "result" : "Failed"
         }
       ],
+      "result" : "Failed",
       "details" : "iOS Simulator 26.2",
-      "duration" : "0,0021s",
-      "durationInSeconds" : 0.0021200180053710938,
-      "name" : "iPhone 17 Pro",
       "nodeIdentifier" : "A201851A-8D41-48D2-86EE-319440740DAA",
       "nodeType" : "Device",
-      "result" : "Failed"
+      "name" : "iPhone 17 Pro",
+      "durationInSeconds" : 0.0021200180053710938,
+      "duration" : "0,0021s"
     }
-  ]
+  ],
+  "durationInSeconds" : 0.0021200180053710938,
+  "devices" : [
+    {
+      "platform" : "iOS Simulator",
+      "osBuildNumber" : "23C54",
+      "architecture" : "arm64",
+      "osVersion" : "26.2",
+      "deviceName" : "iPhone 17 Pro",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "modelName" : "iPhone 17 Pro"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ],
+  "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
+  "hasPerformanceMetrics" : false,
+  "testIdentifier" : "RandomStuffTests/testFoo()"
 }

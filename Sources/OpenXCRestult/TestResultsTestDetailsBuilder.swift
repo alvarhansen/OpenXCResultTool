@@ -141,7 +141,7 @@ struct TestResultsTestDetailsBuilder {
         let sortedGroups = parameterGroups.sorted { $0.orderIndex < $1.orderIndex }
         var results: [TestArgument] = []
         for group in sortedGroups {
-            let sortedValues = sortArgumentValues(values: group.values)
+            let sortedValues = sortArgumentValues(label: group.label, values: group.values)
             for value in sortedValues {
                 let display = ArgumentNameFormatter.displayName(label: group.label, value: value)
                 results.append(TestArgument(value: display))
@@ -150,7 +150,29 @@ struct TestResultsTestDetailsBuilder {
         return results
     }
 
-    private func sortArgumentValues(values: [String]) -> [String] {
+    private func sortArgumentValues(label: String, values: [String]) -> [String] {
+        switch label {
+        case "XCUIAppearanceMode":
+            let uniqueValues = Array(Set(values))
+            return uniqueValues.sorted { lhs, rhs in
+                let leftName = ArgumentNameFormatter.displayName(label: label, value: lhs)
+                let rightName = ArgumentNameFormatter.displayName(label: label, value: rhs)
+                return leftName < rightName
+            }
+        case "XCUIDeviceOrientation":
+            let uniqueValues = Array(Set(values))
+            return uniqueValues.sorted { lhs, rhs in
+                let leftNumber = Int(lhs)
+                let rightNumber = Int(rhs)
+                if let leftNumber, let rightNumber, leftNumber != rightNumber {
+                    return leftNumber < rightNumber
+                }
+                return lhs < rhs
+            }
+        default:
+            break
+        }
+
         var counts: [String: Int] = [:]
         for value in values {
             counts[value, default: 0] += 1

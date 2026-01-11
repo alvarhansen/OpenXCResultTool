@@ -1,62 +1,62 @@
 {
-  "devices" : [
+  "testRuns" : [
     {
-      "architecture" : "arm64",
-      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
-      "deviceName" : "iPhone 17 Pro",
-      "modelName" : "iPhone 17 Pro",
-      "osBuildNumber" : "23C54",
-      "osVersion" : "26.2",
-      "platform" : "iOS Simulator"
+      "nodeIdentifier" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "result" : "Failed",
+      "children" : [
+        {
+          "name" : "Test Scheme Action",
+          "nodeType" : "Test Plan Configuration",
+          "nodeIdentifier" : "1",
+          "result" : "Failed",
+          "durationInSeconds" : 0.003908038139343262,
+          "children" : [
+            {
+              "nodeType" : "Test Case Run",
+              "name" : "Expected failure 'Working on a fix for this problem.' but none recorded",
+              "result" : "Failed",
+              "children" : [
+                {
+                  "nodeType" : "Source Code Reference",
+                  "name" : "RandomStuffTests.testExpectedFailure2()"
+                }
+              ]
+            }
+          ],
+          "duration" : "0,0039s"
+        }
+      ],
+      "nodeType" : "Device",
+      "details" : "iOS Simulator 26.2",
+      "duration" : "0,0039s",
+      "durationInSeconds" : 0.003908038139343262,
+      "name" : "iPhone 17 Pro"
     }
   ],
-  "duration" : "Ran for 0,0039 seconds",
-  "durationInSeconds" : 0.003908038139343262,
   "hasMediaAttachments" : false,
-  "hasPerformanceMetrics" : false,
   "testDescription" : "Test case with 1 run",
   "testIdentifier" : "RandomStuffTests/testExpectedFailure2()",
+  "devices" : [
+    {
+      "platform" : "iOS Simulator",
+      "modelName" : "iPhone 17 Pro",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "deviceName" : "iPhone 17 Pro",
+      "architecture" : "arm64",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2"
+    }
+  ],
+  "testResult" : "Failed",
+  "hasPerformanceMetrics" : false,
+  "durationInSeconds" : 0.003908038139343262,
+  "duration" : "Ran for 0,0039 seconds",
   "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExpectedFailure2",
   "testName" : "testExpectedFailure2()",
   "testPlanConfigurations" : [
     {
-      "configurationId" : "1",
-      "configurationName" : "Test Scheme Action"
-    }
-  ],
-  "testResult" : "Failed",
-  "testRuns" : [
-    {
-      "children" : [
-        {
-          "children" : [
-            {
-              "children" : [
-                {
-                  "name" : "RandomStuffTests.testExpectedFailure2()",
-                  "nodeType" : "Source Code Reference"
-                }
-              ],
-              "name" : "Expected failure 'Working on a fix for this problem.' but none recorded",
-              "nodeType" : "Test Case Run",
-              "result" : "Failed"
-            }
-          ],
-          "duration" : "0,0039s",
-          "durationInSeconds" : 0.003908038139343262,
-          "name" : "Test Scheme Action",
-          "nodeIdentifier" : "1",
-          "nodeType" : "Test Plan Configuration",
-          "result" : "Failed"
-        }
-      ],
-      "details" : "iOS Simulator 26.2",
-      "duration" : "0,0039s",
-      "durationInSeconds" : 0.003908038139343262,
-      "name" : "iPhone 17 Pro",
-      "nodeIdentifier" : "A201851A-8D41-48D2-86EE-319440740DAA",
-      "nodeType" : "Device",
-      "result" : "Failed"
+      "configurationName" : "Test Scheme Action",
+      "configurationId" : "1"
     }
   ]
 }

@@ -1,23 +1,21 @@
 {
+  "testDescription" : "Test case with 1 run",
+  "durationInSeconds" : 0.0007680654525756836,
+  "duration" : "Ran for 0,00077 seconds",
   "devices" : [
     {
-      "architecture" : "arm64",
-      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
-      "deviceName" : "iPhone 17 Pro",
       "modelName" : "iPhone 17 Pro",
       "osBuildNumber" : "23C54",
       "osVersion" : "26.2",
-      "platform" : "iOS Simulator"
+      "platform" : "iOS Simulator",
+      "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "deviceName" : "iPhone 17 Pro",
+      "architecture" : "arm64"
     }
   ],
-  "duration" : "Ran for 0,00077 seconds",
-  "durationInSeconds" : 0.0007680654525756836,
-  "hasMediaAttachments" : false,
-  "hasPerformanceMetrics" : false,
-  "testDescription" : "Test case with 1 run",
   "testIdentifier" : "RandomStuffTests/testExample()",
+  "hasPerformanceMetrics" : false,
   "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample",
-  "testName" : "testExample()",
   "testPlanConfigurations" : [
     {
       "configurationId" : "1",
@@ -25,25 +23,27 @@
     }
   ],
   "testResult" : "Passed",
+  "hasMediaAttachments" : false,
+  "testName" : "testExample()",
   "testRuns" : [
     {
       "children" : [
         {
-          "duration" : "0,00077s",
-          "durationInSeconds" : 0.0007680654525756836,
-          "name" : "Test Scheme Action",
-          "nodeIdentifier" : "1",
           "nodeType" : "Test Plan Configuration",
-          "result" : "Passed"
+          "nodeIdentifier" : "1",
+          "name" : "Test Scheme Action",
+          "result" : "Passed",
+          "durationInSeconds" : 0.0007680654525756836,
+          "duration" : "0,00077s"
         }
       ],
-      "details" : "iOS Simulator 26.2",
-      "duration" : "0,00077s",
-      "durationInSeconds" : 0.0007680654525756836,
-      "name" : "iPhone 17 Pro",
       "nodeIdentifier" : "A201851A-8D41-48D2-86EE-319440740DAA",
+      "durationInSeconds" : 0.0007680654525756836,
+      "duration" : "0,00077s",
+      "result" : "Passed",
+      "name" : "iPhone 17 Pro",
       "nodeType" : "Device",
-      "result" : "Passed"
+      "details" : "iOS Simulator 26.2"
     }
   ]
 }
