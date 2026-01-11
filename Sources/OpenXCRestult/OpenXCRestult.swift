@@ -3,7 +3,11 @@
 
 @main
 struct OpenXCRestult {
+    static func greeting() -> String {
+        "Hello, world!"
+    }
+
     static func main() {
-        print("Hello, world!")
+        print(greeting())
     }
 }

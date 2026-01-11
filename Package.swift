@@ -11,5 +11,9 @@ let package = Package(
         .executableTarget(
             name: "OpenXCRestult"
         ),
+        .testTarget(
+            name: "OpenXCRestultTests",
+            dependencies: ["OpenXCRestult"]
+        ),
     ]
 )
