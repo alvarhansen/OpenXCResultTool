@@ -4,6 +4,25 @@ options:
 settings:
   base:
     IPHONEOS_DEPLOYMENT_TARGET: 17.0
+schemes:
+  InsightSampleApp:
+    build:
+      targets:
+        InsightSampleApp: all
+    test:
+      targets:
+        - InsightSampleAppTests
+        - InsightSampleAppUITests
+  InsightSampleAppFailure:
+    build:
+      targets:
+        InsightSampleApp: all
+    test:
+      targets:
+        - InsightSampleAppTests
+        - InsightSampleAppUITests
+      environmentVariables:
+        INSIGHT_FORCE_FAILURE: "1"
 targets:
   InsightSampleApp:
     type: application
