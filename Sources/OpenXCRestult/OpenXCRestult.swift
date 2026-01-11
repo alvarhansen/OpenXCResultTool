@@ -1,13 +1,17 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
+import Foundation
+
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
 
 @main
 struct OpenXCRestult {
-    static func greeting() -> String {
-        "Hello, world!"
-    }
-
     static func main() {
-        print(greeting())
+        let exitCode = CLI().run()
+        if exitCode != 0 {
+            exit(exitCode)
+        }
     }
 }
