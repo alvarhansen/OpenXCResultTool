@@ -1,0 +1,537 @@
+{
+  "testIdentifier" : "RandomStuffUITestsLaunchTests/testLaunch",
+  "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffUITests/RandomStuffUITestsLaunchTests/testLaunch",
+  "testName" : "testLaunch()",
+  "testRuns" : [
+    {
+      "activities" : [
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127889.13,
+              "title" : "Device orientation changed to Portrait"
+            },
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127889.153,
+              "title" : "Wait for com.apple.springboard to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127888.943,
+          "title" : "Setting device orientation to Portrait"
+        },
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127889.389,
+              "title" : "Wait for com.apple.springboard to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127889.239,
+          "title" : "Setting appearance mode to Light"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127889.483,
+          "title" : "Start Test at 2026-01-11 12:38:09.472"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127889.85,
+          "title" : "Set Up"
+        },
+        {
+          "childActivities" : [
+            {
+              "childActivities" : [
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127898.619,
+                  "title" : "Setting up automation session"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127900.321,
+                  "title" : "Wait for ee.hansen.RandomStuff to idle"
+                }
+              ],
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127889.853,
+              "title" : "Launch ee.hansen.RandomStuff"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127889.852,
+          "title" : "Open ee.hansen.RandomStuff"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127901.464,
+          "title" : "Find the Target Application 'ee.hansen.RandomStuff'"
+        },
+        {
+          "attachments" : [
+            {
+              "lifetime" : "keepAlways",
+              "name" : "Launch Screen_0_53E1C67A-8428-403B-A173-57C38BE9DA8B.png",
+              "payloadId" : "0~Kp8-war9LKfckITs0mAwL-D_5lWGoDG1S-bkclWuJxvQV8-WiMiuQIt4_0kGja7MvAG-5kgEGKiJWpA6cQbl9w==",
+              "timestamp" : 1768127901.685,
+              "uuid" : "B7DFB9D4-5AE8-48E8-B9F7-81401168696A"
+            }
+          ],
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127901.685,
+              "title" : "Launch Screen"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127901.685,
+          "title" : "Added attachment named 'Launch Screen'"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127901.687,
+          "title" : "Tear Down"
+        }
+      ],
+      "arguments" : [
+        {
+          "value" : "Light Appearance"
+        },
+        {
+          "value" : "Portrait"
+        }
+      ],
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23C54",
+        "osVersion" : "26.2",
+        "platform" : "iOS Simulator"
+      },
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    },
+    {
+      "activities" : [
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127902.662,
+              "title" : "Device orientation changed to Landscape Right"
+            },
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127902.725,
+              "title" : "Interface orientation changed to Landscape Left"
+            },
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127902.728,
+              "title" : "Wait for ee.hansen.RandomStuff to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127902.652,
+          "title" : "Setting device orientation to Landscape Right"
+        },
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127903.064,
+              "title" : "Wait for ee.hansen.RandomStuff to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127903.032,
+          "title" : "Setting appearance mode to Light"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127903.078,
+          "title" : "Start Test at 2026-01-11 12:38:23.078"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127903.102,
+          "title" : "Set Up"
+        },
+        {
+          "childActivities" : [
+            {
+              "childActivities" : [
+                {
+                  "childActivities" : [
+                    {
+                      "isAssociatedWithFailure" : false,
+                      "startTime" : 1768127903.463,
+                      "title" : "Interface orientation changed to Portrait"
+                    }
+                  ],
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127903.104,
+                  "title" : "Terminate ee.hansen.RandomStuff:50781"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127904.51,
+                  "title" : "Interface orientation changed to Landscape Left"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127904.514,
+                  "title" : "Setting up automation session"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127925.484,
+                  "title" : "Wait for ee.hansen.RandomStuff to idle"
+                }
+              ],
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127903.104,
+              "title" : "Launch ee.hansen.RandomStuff"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127903.103,
+          "title" : "Open ee.hansen.RandomStuff"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127926.628,
+          "title" : "Find the Target Application 'ee.hansen.RandomStuff'"
+        },
+        {
+          "attachments" : [
+            {
+              "lifetime" : "keepAlways",
+              "name" : "Launch Screen_0_21CA2376-214F-4565-89CF-BA2ECEA24844.png",
+              "payloadId" : "0~aFG-I8Kkg32fm2WNAyhHb-p-JJ4DNn_qft6vt809H6wNjvLOccfFaQT1hYwH8AuO_6wiTvJrzwrETcJeRXzgOQ==",
+              "timestamp" : 1768127928.728,
+              "uuid" : "2B526C2A-4719-4000-88BA-4F4A84F8FB0A"
+            }
+          ],
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127928.728,
+              "title" : "Launch Screen"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127928.728,
+          "title" : "Added attachment named 'Launch Screen'"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127928.73,
+          "title" : "Tear Down"
+        }
+      ],
+      "arguments" : [
+        {
+          "value" : "Unspecified"
+        },
+        {
+          "value" : "Portrait"
+        }
+      ],
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23C54",
+        "osVersion" : "26.2",
+        "platform" : "iOS Simulator"
+      },
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    },
+    {
+      "activities" : [
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127929.096,
+              "title" : "Device orientation changed to Portrait"
+            },
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127929.206,
+              "title" : "Interface orientation changed to Portrait"
+            },
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127929.219,
+              "title" : "Wait for ee.hansen.RandomStuff to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127929.071,
+          "title" : "Setting device orientation to Portrait"
+        },
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127931.786,
+              "title" : "Wait for ee.hansen.RandomStuff to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127929.563,
+          "title" : "Setting appearance mode to Dark"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127931.826,
+          "title" : "Start Test at 2026-01-11 12:38:51.826"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127931.854,
+          "title" : "Set Up"
+        },
+        {
+          "childActivities" : [
+            {
+              "childActivities" : [
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127931.858,
+                  "title" : "Terminate ee.hansen.RandomStuff:50798"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127936.469,
+                  "title" : "Setting up automation session"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127938.564,
+                  "title" : "Wait for ee.hansen.RandomStuff to idle"
+                }
+              ],
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127931.858,
+              "title" : "Launch ee.hansen.RandomStuff"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127931.857,
+          "title" : "Open ee.hansen.RandomStuff"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127939.701,
+          "title" : "Find the Target Application 'ee.hansen.RandomStuff'"
+        },
+        {
+          "attachments" : [
+            {
+              "lifetime" : "keepAlways",
+              "name" : "Launch Screen_0_E6596DC3-19E9-4EA7-AA52-704FB57F352D.png",
+              "payloadId" : "0~Kp8-war9LKfckITs0mAwL-D_5lWGoDG1S-bkclWuJxvQV8-WiMiuQIt4_0kGja7MvAG-5kgEGKiJWpA6cQbl9w==",
+              "timestamp" : 1768127939.989,
+              "uuid" : "CC1B4AC2-6AE8-4FDB-8411-6556F4653AA9"
+            }
+          ],
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127939.989,
+              "title" : "Launch Screen"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127939.989,
+          "title" : "Added attachment named 'Launch Screen'"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127939.998,
+          "title" : "Tear Down"
+        }
+      ],
+      "arguments" : [
+        {
+          "value" : "Dark Appearance"
+        },
+        {
+          "value" : "Portrait"
+        }
+      ],
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23C54",
+        "osVersion" : "26.2",
+        "platform" : "iOS Simulator"
+      },
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    },
+    {
+      "activities" : [
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127941.383,
+              "title" : "Interface orientation changed to Landscape Left"
+            },
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127941.4,
+              "title" : "Device orientation changed to Landscape Right"
+            },
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127941.5,
+              "title" : "Wait for ee.hansen.RandomStuff to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127941.255,
+          "title" : "Setting device orientation to Landscape Right"
+        },
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127941.903,
+              "title" : "Wait for ee.hansen.RandomStuff to idle"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127941.773,
+          "title" : "Setting appearance mode to Dark"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127942.042,
+          "title" : "Start Test at 2026-01-11 12:39:02.042"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127942.103,
+          "title" : "Set Up"
+        },
+        {
+          "childActivities" : [
+            {
+              "childActivities" : [
+                {
+                  "childActivities" : [
+                    {
+                      "isAssociatedWithFailure" : false,
+                      "startTime" : 1768127942.644,
+                      "title" : "Interface orientation changed to Portrait"
+                    }
+                  ],
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127942.175,
+                  "title" : "Terminate ee.hansen.RandomStuff:50910"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127943.848,
+                  "title" : "Interface orientation changed to Landscape Left"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127945.219,
+                  "title" : "Setting up automation session"
+                },
+                {
+                  "isAssociatedWithFailure" : false,
+                  "startTime" : 1768127952.066,
+                  "title" : "Wait for ee.hansen.RandomStuff to idle"
+                }
+              ],
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127942.174,
+              "title" : "Launch ee.hansen.RandomStuff"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127942.113,
+          "title" : "Open ee.hansen.RandomStuff"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127953.244,
+          "title" : "Find the Target Application 'ee.hansen.RandomStuff'"
+        },
+        {
+          "attachments" : [
+            {
+              "lifetime" : "keepAlways",
+              "name" : "Launch Screen_0_7DF2B7DC-FF1C-4EF3-9600-81CCE893A581.png",
+              "payloadId" : "0~aFG-I8Kkg32fm2WNAyhHb-p-JJ4DNn_qft6vt809H6wNjvLOccfFaQT1hYwH8AuO_6wiTvJrzwrETcJeRXzgOQ==",
+              "timestamp" : 1768127953.586,
+              "uuid" : "37D11DDD-04B6-44D8-A5BF-ABBC67B1A4E1"
+            }
+          ],
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "startTime" : 1768127953.586,
+              "title" : "Launch Screen"
+            }
+          ],
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127953.586,
+          "title" : "Added attachment named 'Launch Screen'"
+        },
+        {
+          "isAssociatedWithFailure" : false,
+          "startTime" : 1768127953.587,
+          "title" : "Tear Down"
+        }
+      ],
+      "arguments" : [
+        {
+          "value" : "Dark Appearance"
+        },
+        {
+          "value" : "Landscape Right"
+        }
+      ],
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23C54",
+        "osVersion" : "26.2",
+        "platform" : "iOS Simulator"
+      },
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ]
+}

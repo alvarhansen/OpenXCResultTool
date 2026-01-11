@@ -80,6 +80,46 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testActivitiesMatchesFixture() throws {
+        let snapshots = [
+            ActivitiesSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffUITestsLaunchTests/testLaunch",
+                snapshotSuffix: "activities.testLaunch"
+            ),
+            ActivitiesSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                testId: "RandomStuffTests/testExample()",
+                snapshotSuffix: "activities.testExample"
+            ),
+            ActivitiesSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testFoo()",
+                snapshotSuffix: "activities.testFoo"
+            ),
+            ActivitiesSnapshot(
+                fixtureName: "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                testId: "RandomStuffTests/testExpectedFailure()",
+                snapshotSuffix: "activities.testExpectedFailure"
+            ),
+        ]
+
+        for snapshot in snapshots {
+            let fixtureURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).xcresult")
+            let snapshotURL = fixturesDirectory().appendingPathComponent("\(snapshot.fixtureName).\(snapshot.snapshotSuffix).json")
+
+            let builder = try TestResultsActivitiesBuilder(xcresultPath: fixtureURL.path)
+            let activities = try builder.activities(testId: snapshot.testId)
+            let actual = try encode(activities)
+            let expected = try Data(contentsOf: snapshotURL)
+
+            let normalizedActual = try normalizedJSON(actual)
+            let normalizedExpected = try normalizedJSON(expected)
+
+            XCTAssertEqual(normalizedActual, normalizedExpected, "Mismatch for fixture \(snapshot.fixtureName) (\(snapshot.snapshotSuffix))")
+        }
+    }
+
     private func fixturesDirectory() -> URL {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         return root.appendingPathComponent("Tests").appendingPathComponent("Fixtures")
@@ -124,6 +164,12 @@ final class OpenXCRestultTests: XCTestCase {
 }
 
 private struct TestDetailsSnapshot {
+    let fixtureName: String
+    let testId: String
+    let snapshotSuffix: String
+}
+
+private struct ActivitiesSnapshot {
     let fixtureName: String
     let testId: String
     let snapshotSuffix: String

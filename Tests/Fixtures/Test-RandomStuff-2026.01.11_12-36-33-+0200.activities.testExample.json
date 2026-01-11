@@ -1,0 +1,25 @@
+{
+  "testIdentifier" : "RandomStuffTests/testExample()",
+  "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testExample",
+  "testName" : "testExample()",
+  "testRuns" : [
+    {
+      "activities" : [
+
+      ],
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23C54",
+        "osVersion" : "26.2",
+        "platform" : "iOS Simulator"
+      },
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "testIdentifier" : "RandomStuffTests/testFoo()",
+  "testIdentifierURL" : "test://com.apple.xcode/RandomStuff/RandomStuffTests/RandomStuffTests/testFoo",
+  "testName" : "testFoo()",
+  "testRuns" : [
+    {
+      "activities" : [
+        {
+          "childActivities" : [
+            {
+              "isAssociatedWithFailure" : false,
+              "title" : "RandomStuffTests.testFoo()"
+            }
+          ],
+          "isAssociatedWithFailure" : true,
+          "startTime" : 1768133533.798,
+          "title" : "XCTAssertEqual failed: (\"1\") is not equal to (\"2\")"
+        }
+      ],
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "A201851A-8D41-48D2-86EE-319440740DAA",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23C54",
+        "osVersion" : "26.2",
+        "platform" : "iOS Simulator"
+      },
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ]
+}
