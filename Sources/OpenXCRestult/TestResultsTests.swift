@@ -8,6 +8,7 @@ struct TestResultsTests: Encodable {
 
 struct TestNode: Encodable {
     let children: [TestNode]?
+    let details: String?
     let duration: String?
     let durationInSeconds: Double?
     let name: String

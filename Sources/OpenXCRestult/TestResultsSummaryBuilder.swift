@@ -52,6 +52,14 @@ struct TestResultsSummaryBuilder {
         return count ?? 0
     }
 
+    private func countTestRuns() throws -> Int {
+        let sql = "SELECT count(*) FROM TestCaseRuns;"
+        let count = try context.database.queryOne(sql) { statement in
+            SQLiteDatabase.int(statement, 0) ?? 0
+        }
+        return count ?? 0
+    }
+
     private func resultCountsForSummary() throws -> ResultCounts {
         let sql = """
         SELECT result, count(*)
@@ -68,27 +76,45 @@ struct TestResultsSummaryBuilder {
     }
 
     private func loadDevicesAndConfigurations() throws -> [DevicesAndConfiguration] {
-        let action = context.action
-        guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
-            return []
-        }
-        let device = try loadDevice(for: runDestination)
+        var results: [DevicesAndConfiguration] = []
 
-        return try context.testPlanRuns.map { planRun in
-            let configuration = try context.fetchConfiguration(configurationId: planRun.configurationId)
-            let counts = try resultCountsForTestPlanRun(planRun.id)
+        for action in context.actions {
+            guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
+                continue
+            }
+            let device = try loadDevice(for: runDestination)
+            let planRuns = context.testPlanRuns.filter { $0.actionId == action.id }
 
-            return DevicesAndConfiguration(
-                device: device,
-                expectedFailures: counts.expectedFailures,
-                failedTests: counts.failedTests,
-                passedTests: counts.passedTests,
-                skippedTests: counts.skippedTests,
-                testPlanConfiguration: TestPlanConfiguration(
-                    configurationId: String(configuration.id),
-                    configurationName: configuration.name
+            for planRun in planRuns {
+                let configuration = try context.fetchConfiguration(configurationId: planRun.configurationId)
+                let counts = try resultCountsForTestPlanRun(planRun.id)
+
+                results.append(
+                    DevicesAndConfiguration(
+                        device: device,
+                        expectedFailures: counts.expectedFailures,
+                        failedTests: counts.failedTests,
+                        passedTests: counts.passedTests,
+                        skippedTests: counts.skippedTests,
+                        testPlanConfiguration: TestPlanConfiguration(
+                            configurationId: String(configuration.id),
+                            configurationName: configuration.name
+                        )
+                    )
                 )
-            )
+            }
+        }
+
+        return results.sorted {
+            if $0.device.deviceName != $1.device.deviceName {
+                return $0.device.deviceName < $1.device.deviceName
+            }
+            let leftConfig = Int($0.testPlanConfiguration.configurationId) ?? Int.max
+            let rightConfig = Int($1.testPlanConfiguration.configurationId) ?? Int.max
+            if leftConfig != rightConfig {
+                return leftConfig < rightConfig
+            }
+            return $0.testPlanConfiguration.configurationName < $1.testPlanConfiguration.configurationName
         }
     }
 
@@ -185,6 +211,9 @@ struct TestResultsSummaryBuilder {
 
     private func loadStatistics() throws -> [SummaryStatistic] {
         var stats: [SummaryStatistic] = []
+        if let runStatistic = try loadTestRunStatistic() {
+            stats.append(runStatistic)
+        }
         if let dynamic = try loadDynamicParameterStatistic() {
             stats.append(dynamic)
         }
@@ -192,6 +221,22 @@ struct TestResultsSummaryBuilder {
             stats.append(performance)
         }
         return stats
+    }
+
+    private func loadTestRunStatistic() throws -> SummaryStatistic? {
+        guard context.testPlanRuns.count > 1 else { return nil }
+        let totalTests = try countTotalTests()
+        let testRuns = try countTestRuns()
+        let configurationCount = Set(context.testPlanRuns.map(\.configurationId)).count
+        let deviceCount = Set(context.actions.compactMap(\.runDestinationId)).count
+
+        let testLabel = totalTests == 1 ? "test ran" : "tests ran"
+        let configurationLabel = configurationCount == 1 ? "configuration" : "configurations"
+        let deviceLabel = deviceCount == 1 ? "device" : "devices"
+
+        let title = "\(totalTests) \(testLabel) on \(configurationCount) \(configurationLabel) and \(deviceCount) \(deviceLabel)"
+        let subtitle = "\(testRuns) test runs"
+        return SummaryStatistic(subtitle: subtitle, title: title)
     }
 
     private func loadTopInsights() throws -> [SummaryInsight] {

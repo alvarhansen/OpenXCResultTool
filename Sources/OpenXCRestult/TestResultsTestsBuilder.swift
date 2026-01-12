@@ -23,11 +23,15 @@ struct TestResultsTestsBuilder {
     }
 
     private func loadDevices() throws -> [SummaryDevice] {
-        guard let runDestination = try context.fetchRunDestination(runDestinationId: context.action.runDestinationId) else {
-            return []
+        var devices: [SummaryDevice] = []
+        for action in context.actions {
+            guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
+                continue
+            }
+            let device = try loadDevice(for: runDestination)
+            devices.append(device)
         }
-        let device = try loadDevice(for: runDestination)
-        return [device]
+        return devices
     }
 
     private func loadDevice(for runDestination: RunDestinationRow) throws -> SummaryDevice {
@@ -57,6 +61,7 @@ struct TestResultsTestsBuilder {
 
         let planNode = TestNode(
             children: testableNodes,
+            details: nil,
             duration: nil,
             durationInSeconds: nil,
             name: planName,
@@ -77,6 +82,7 @@ struct TestResultsTestsBuilder {
 
         return TestNode(
             children: suiteTree,
+            details: nil,
             duration: nil,
             durationInSeconds: nil,
             name: testable.name,
@@ -108,6 +114,7 @@ struct TestResultsTestsBuilder {
 
         return TestNode(
             children: children.isEmpty ? nil : children,
+            details: nil,
             duration: nil,
             durationInSeconds: nil,
             name: suite.name,
@@ -134,15 +141,23 @@ struct TestResultsTestsBuilder {
         let runResults = runs.map { TestResultFormatter.mapResult($0.result) }
         let result = TestResultFormatter.aggregate(runResults)
 
-        var children: [TestNode] = []
-        let argumentsNodes = try buildArgumentNodes(for: runs)
-        children.append(contentsOf: argumentsNodes)
+        let children: [TestNode]?
+        if context.testPlanRuns.count > 1 {
+            let deviceNodes = try buildDeviceNodes(for: runs)
+            children = deviceNodes.isEmpty ? nil : deviceNodes
+        } else {
+            var nodes: [TestNode] = []
+            let argumentsNodes = try buildArgumentNodes(for: runs)
+            nodes.append(contentsOf: argumentsNodes)
 
-        let failureNodes = try buildFailureNodes(for: runs)
-        children.append(contentsOf: failureNodes)
+            let failureNodes = try buildFailureNodes(for: runs)
+            nodes.append(contentsOf: failureNodes)
+            children = nodes.isEmpty ? nil : nodes
+        }
 
         return TestNode(
-            children: children.isEmpty ? nil : children,
+            children: children,
+            details: nil,
             duration: durationString,
             durationInSeconds: averageDuration,
             name: testCase.name,
@@ -166,6 +181,7 @@ struct TestResultsTestsBuilder {
             let durationString = RunDurationFormatter.format(seconds: run.duration)
             let node = TestNode(
                 children: nil,
+                details: nil,
                 duration: durationString,
                 durationInSeconds: run.duration,
                 name: name,
@@ -214,9 +230,109 @@ struct TestResultsTestsBuilder {
         return nodes
     }
 
+    private func buildDeviceNodes(for runs: [TestCaseRunRow]) throws -> [TestNode] {
+        guard !runs.isEmpty else { return [] }
+
+        let planRunsById = Dictionary(uniqueKeysWithValues: context.testPlanRuns.map { ($0.id, $0) })
+        let deviceInfoByAction = try loadDeviceInfoByAction()
+        var runsByDevice: [String: [Int: [TestCaseRunRow]]] = [:]
+        var deviceInfoById: [String: DeviceNodeInfo] = [:]
+
+        for run in runs {
+            guard let planRun = planRunsById[run.testPlanRunId],
+                  let deviceInfo = deviceInfoByAction[planRun.actionId] else {
+                continue
+            }
+            deviceInfoById[deviceInfo.id] = deviceInfo
+            runsByDevice[deviceInfo.id, default: [:]][planRun.configurationId, default: []].append(run)
+        }
+
+        let sortedDeviceIds = deviceInfoById.values.sorted {
+            if $0.name == $1.name { return $0.id < $1.id }
+            return $0.name < $1.name
+        }.map(\.id)
+
+        var deviceNodes: [TestNode] = []
+        for deviceId in sortedDeviceIds {
+            guard let deviceInfo = deviceInfoById[deviceId],
+                  let configs = runsByDevice[deviceId] else {
+                continue
+            }
+
+            let configIds = configs.keys.sorted()
+            var configNodes: [TestNode] = []
+            for configId in configIds {
+                guard let configRuns = configs[configId] else { continue }
+                let configuration = try context.fetchConfiguration(configurationId: configId)
+                let configResult = TestResultFormatter.aggregate(configRuns.map { TestResultFormatter.mapResult($0.result) })
+                let averageDuration = configRuns.isEmpty ? 0 : configRuns.map(\.duration).reduce(0, +) / Double(configRuns.count)
+                let durationString = RunDurationFormatter.format(seconds: averageDuration)
+
+                var children: [TestNode] = []
+                let argumentsNodes = try buildArgumentNodes(for: configRuns)
+                children.append(contentsOf: argumentsNodes)
+                let failureNodes = try buildFailureNodes(for: configRuns)
+                children.append(contentsOf: failureNodes)
+                let includeDuration = argumentsNodes.isEmpty
+
+                let configNode = TestNode(
+                    children: children.isEmpty ? nil : children,
+                    details: nil,
+                    duration: includeDuration ? durationString : nil,
+                    durationInSeconds: includeDuration ? averageDuration : nil,
+                    name: configuration.name,
+                    nodeIdentifier: String(configuration.id),
+                    nodeIdentifierURL: nil,
+                    nodeType: "Test Plan Configuration",
+                    result: configResult
+                )
+                configNodes.append(configNode)
+            }
+
+            let deviceResult = TestResultFormatter.aggregate(configNodes.compactMap { $0.result })
+            let deviceNode = TestNode(
+                children: configNodes,
+                details: deviceInfo.details,
+                duration: nil,
+                durationInSeconds: nil,
+                name: deviceInfo.name,
+                nodeIdentifier: deviceInfo.id,
+                nodeIdentifierURL: nil,
+                nodeType: "Device",
+                result: deviceResult
+            )
+            deviceNodes.append(deviceNode)
+        }
+
+        return deviceNodes
+    }
+
+    private func loadDeviceInfoByAction() throws -> [Int: DeviceNodeInfo] {
+        var deviceInfo: [Int: DeviceNodeInfo] = [:]
+        for action in context.actions {
+            guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
+                continue
+            }
+            guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
+                throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
+            }
+            let platform = try context.fetchPlatform(platformId: device.platformId)
+            let details = [platform?.userDescription, device.operatingSystemVersion]
+                .compactMap { $0 }
+                .joined(separator: " ")
+            deviceInfo[action.id] = DeviceNodeInfo(
+                id: device.identifier,
+                name: runDestination.name,
+                details: details
+            )
+        }
+        return deviceInfo
+    }
+
     private func issueNode(_ message: String, nodeType: String) -> TestNode {
         TestNode(
             children: nil,
+            details: nil,
             duration: nil,
             durationInSeconds: nil,
             name: message,
@@ -230,6 +346,7 @@ struct TestResultsTestsBuilder {
     private func failureNode(_ message: String) -> TestNode {
         TestNode(
             children: nil,
+            details: nil,
             duration: nil,
             durationInSeconds: nil,
             name: message,
@@ -333,9 +450,14 @@ struct TestResultsTestsBuilder {
         guard !testableRunIds.isEmpty else { return [] }
         let placeholders = Array(repeating: "?", count: testableRunIds.count).joined(separator: ",")
         let sql = """
-        SELECT TestCaseRuns.rowid, TestCaseRuns.duration, TestCaseRuns.result, TestCaseRuns.skipNotice_fk
+        SELECT TestCaseRuns.rowid,
+               TestCaseRuns.duration,
+               TestCaseRuns.result,
+               TestCaseRuns.skipNotice_fk,
+               TestableRuns.testPlanRun_fk
         FROM TestCaseRuns
         JOIN TestSuiteRuns ON TestSuiteRuns.rowid = TestCaseRuns.testSuiteRun_fk
+        JOIN TestableRuns ON TestableRuns.rowid = TestSuiteRuns.testableRun_fk
         WHERE TestCaseRuns.testCase_fk = ?
           AND TestSuiteRuns.testableRun_fk IN (\(placeholders))
         ORDER BY TestCaseRuns.orderInTestSuiteRun;
@@ -350,7 +472,8 @@ struct TestResultsTestsBuilder {
                 id: SQLiteDatabase.int(statement, 0) ?? 0,
                 duration: SQLiteDatabase.double(statement, 1) ?? 0,
                 result: SQLiteDatabase.string(statement, 2) ?? "",
-                skipNoticeId: SQLiteDatabase.int(statement, 3)
+                skipNoticeId: SQLiteDatabase.int(statement, 3),
+                testPlanRunId: SQLiteDatabase.int(statement, 4) ?? 0
             )
         }
     }
@@ -486,6 +609,13 @@ private struct TestCaseRunRow {
     let duration: Double
     let result: String
     let skipNoticeId: Int?
+    let testPlanRunId: Int
+}
+
+private struct DeviceNodeInfo {
+    let id: String
+    let name: String
+    let details: String
 }
 
 private struct ArgumentRow {

@@ -349,6 +349,72 @@ final class OpenXCRestultTests: XCTestCase {
         XCTAssertEqual(mergedTables, expectedTables, "Mismatch merged table set")
     }
 
+    func testMergeXCResultToolParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtureNames = [
+            "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+            "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+            "Test-Kickstarter-Framework-iOS-2026.01.11_21-21-05-+0200",
+        ]
+        let outputURL = try mergeFixtures(fixtureNames)
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        let commands: [XCResulttoolCommand] = [.summary, .tests, .insights, .metrics]
+        do {
+            for command in commands {
+                let expected = try xcresulttoolJSON(
+                    xcrunURL: xcrunURL,
+                    fixtureURL: outputURL,
+                    command: command
+                )
+                let actual = try openXcresultOutput(
+                    fixturePath: outputURL.path,
+                    command: command
+                )
+
+                let normalizedActual = try normalizedParityJSON(actual, command: command)
+                let normalizedExpected = try normalizedParityJSON(expected, command: command)
+
+                XCTAssertEqual(
+                    normalizedActual,
+                    normalizedExpected,
+                    "Mismatch for merged bundle (\(command.rawValue))"
+                )
+            }
+
+            let expectedBuild = try xcresulttoolBuildResultsJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: outputURL
+            )
+            let actualBuild = try openXcresultBuildResultsOutput(
+                fixturePath: outputURL.path
+            )
+            XCTAssertEqual(
+                try normalizedJSON(actualBuild),
+                try normalizedJSON(expectedBuild),
+                "Mismatch for merged bundle (build-results)"
+            )
+
+            let expectedAvailability = try xcresulttoolContentAvailabilityJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: outputURL
+            )
+            let actualAvailability = try openXcresultContentAvailabilityOutput(
+                fixturePath: outputURL.path
+            )
+            XCTAssertEqual(
+                try normalizedJSON(actualAvailability),
+                try normalizedJSON(expectedAvailability),
+                "Mismatch for merged bundle (content-availability)"
+            )
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool failed for merged bundle: \(error.message)")
+        }
+    }
+
     func testXCResultToolContentAvailabilityParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")

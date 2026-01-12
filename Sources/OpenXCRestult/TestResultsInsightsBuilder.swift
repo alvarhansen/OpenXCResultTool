@@ -20,19 +20,25 @@ struct TestResultsInsightsBuilder {
     private func longestTestRunsInsights() throws -> [LongestTestRunsInsight] {
         var insights: [LongestTestRunsInsight] = []
 
-        let destination = try context.fetchRunDestination(runDestinationId: context.action.runDestinationId)
-        let device = try destination.flatMap { try context.fetchDevice(deviceId: $0.deviceId) }
-        let platform = try device.flatMap { try context.fetchPlatform(platformId: $0.platformId) }
+        var deviceInfoByAction: [Int: (deviceName: String, osNameAndVersion: String)] = [:]
+        for action in context.actions {
+            let destination = try context.fetchRunDestination(runDestinationId: action.runDestinationId)
+            let device = try destination.flatMap { try context.fetchDevice(deviceId: $0.deviceId) }
+            let platform = try device.flatMap { try context.fetchPlatform(platformId: $0.platformId) }
 
-        let deviceName = destination?.name ?? ""
-        let osNameAndVersion = [
-            platform?.userDescription,
-            device?.operatingSystemVersion
-        ]
-        .compactMap { $0 }
-        .joined(separator: " ")
+            let deviceName = destination?.name ?? ""
+            let osNameAndVersion = [
+                platform?.userDescription,
+                device?.operatingSystemVersion
+            ]
+            .compactMap { $0 }
+            .joined(separator: " ")
+
+            deviceInfoByAction[action.id] = (deviceName, osNameAndVersion)
+        }
 
         for planRun in context.testPlanRuns {
+            let deviceInfo = deviceInfoByAction[planRun.actionId] ?? ("", "")
             let configuration = try context.fetchConfiguration(configurationId: planRun.configurationId)
             let testableRuns = try fetchTestableRuns(for: planRun.id)
 
@@ -56,11 +62,11 @@ struct TestResultsInsightsBuilder {
                 insights.append(
                     LongestTestRunsInsight(
                         associatedTestIdentifiers: identifiers,
-                        deviceName: deviceName,
+                        deviceName: deviceInfo.deviceName,
                         durationOfSlowTests: slowDuration,
                         impact: "(\(impactPercent)%)",
                         meanTime: meanTime,
-                        osNameAndVersion: osNameAndVersion,
+                        osNameAndVersion: deviceInfo.osNameAndVersion,
                         targetName: testable.name,
                         testPlanConfigurationName: configuration.name,
                         title: title

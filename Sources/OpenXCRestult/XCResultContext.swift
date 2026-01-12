@@ -3,17 +3,20 @@ import SQLite3
 
 struct XCResultContext {
     let database: SQLiteDatabase
+    let actions: [ActionRow]
     let action: ActionRow
     let testPlanRuns: [TestPlanRunRow]
 
     init(xcresultPath: String) throws {
         let databasePath = XCResultContext.databasePath(for: xcresultPath)
         self.database = try SQLiteDatabase(path: databasePath)
-        guard let action = try XCResultContext.fetchAction(from: database) else {
+        let actions = try XCResultContext.fetchActions(from: database)
+        guard let action = actions.first else {
             throw SQLiteError("No Actions rows found in \(databasePath).")
         }
+        self.actions = actions
         self.action = action
-        self.testPlanRuns = try XCResultContext.fetchTestPlanRuns(from: database, actionId: action.id)
+        self.testPlanRuns = try XCResultContext.fetchTestPlanRuns(from: database)
     }
 
     func fetchRunDestination(runDestinationId: Int?) throws -> RunDestinationRow? {
@@ -99,7 +102,7 @@ struct XCResultContext {
         return url.appendingPathComponent("database.sqlite3").path
     }
 
-    private static func fetchAction(from database: SQLiteDatabase) throws -> ActionRow? {
+    private static func fetchActions(from database: SQLiteDatabase) throws -> [ActionRow] {
         let sql = """
         SELECT Actions.rowid,
                Actions.name,
@@ -115,9 +118,8 @@ struct XCResultContext {
         JOIN Invocations ON Invocations.rowid = Actions.invocation_fk
         JOIN TestPlans ON TestPlans.rowid = Actions.testPlan_fk
         ORDER BY Actions.orderInInvocation
-        LIMIT 1;
         """
-        return try database.queryOne(sql) { statement in
+        return try database.query(sql) { statement in
             ActionRow(
                 id: SQLiteDatabase.int(statement, 0) ?? 0,
                 name: SQLiteDatabase.string(statement, 1) ?? "",
@@ -133,20 +135,18 @@ struct XCResultContext {
         }
     }
 
-    private static func fetchTestPlanRuns(from database: SQLiteDatabase, actionId: Int) throws -> [TestPlanRunRow] {
+    private static func fetchTestPlanRuns(from database: SQLiteDatabase) throws -> [TestPlanRunRow] {
         let sql = """
-        SELECT rowid, configuration_fk, orderInAction
+        SELECT rowid, configuration_fk, orderInAction, action_fk
         FROM TestPlanRuns
-        WHERE action_fk = ?
-        ORDER BY orderInAction;
+        ORDER BY action_fk, orderInAction;
         """
-        return try database.query(sql, binder: { statement in
-            sqlite3_bind_int(statement, 1, Int32(actionId))
-        }) { statement in
+        return try database.query(sql) { statement in
             TestPlanRunRow(
                 id: SQLiteDatabase.int(statement, 0) ?? 0,
                 configurationId: SQLiteDatabase.int(statement, 1) ?? 0,
-                orderInAction: SQLiteDatabase.int(statement, 2) ?? 0
+                orderInAction: SQLiteDatabase.int(statement, 2) ?? 0,
+                actionId: SQLiteDatabase.int(statement, 3) ?? 0
             )
         }
     }
@@ -169,6 +169,7 @@ struct TestPlanRunRow {
     let id: Int
     let configurationId: Int
     let orderInAction: Int
+    let actionId: Int
 }
 
 struct RunDestinationRow {

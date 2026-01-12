@@ -12,8 +12,8 @@ struct TestResultsMetricsBuilder {
 
     func metrics(testId: String?) throws -> [TestResultsMetricsEntry] {
         let testCases = try fetchTestCases(testId: testId)
-        let device = try loadDevice()
         let planRuns = context.testPlanRuns
+        let devicesByAction = try loadDevicesByAction()
 
         var entries: [TestResultsMetricsEntry] = []
         for testCase in testCases {
@@ -23,6 +23,7 @@ struct TestResultsMetricsBuilder {
                     throw SQLiteError("Missing test plan run with rowid \(run.testPlanRunId).")
                 }
                 let configuration = try context.fetchConfiguration(configurationId: planRun.configurationId)
+                let device = devicesByAction[planRun.actionId] ?? TestResultsMetricsDevice(deviceId: "", deviceName: "")
                 let metrics = try fetchMetrics(runId: run.id)
                 return TestResultsMetricsRun(
                     device: device,
@@ -45,14 +46,21 @@ struct TestResultsMetricsBuilder {
         return entries.sorted { $0.testIdentifier < $1.testIdentifier }
     }
 
-    private func loadDevice() throws -> TestResultsMetricsDevice {
-        guard let runDestination = try context.fetchRunDestination(runDestinationId: context.action.runDestinationId) else {
-            return TestResultsMetricsDevice(deviceId: "", deviceName: "")
+    private func loadDevicesByAction() throws -> [Int: TestResultsMetricsDevice] {
+        var devices: [Int: TestResultsMetricsDevice] = [:]
+        for action in context.actions {
+            guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
+                continue
+            }
+            guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
+                throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
+            }
+            devices[action.id] = TestResultsMetricsDevice(
+                deviceId: device.identifier,
+                deviceName: runDestination.name
+            )
         }
-        guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
-            throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
-        }
-        return TestResultsMetricsDevice(deviceId: device.identifier, deviceName: runDestination.name)
+        return devices
     }
 
     private func fetchTestCases(testId: String?) throws -> [TestCaseRow] {
