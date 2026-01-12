@@ -104,6 +104,7 @@ CLI quick reference
 	•	openxcrestult export attachments --path Tests/Fixtures/<bundle>.xcresult --output-path ./Attachments
 	•	openxcrestult export metrics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Metrics
 	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
+	•	openxcrestult metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
 
 xcresulttool parity map
 	•	Implemented (OpenXCRestult parity targets):
@@ -116,6 +117,7 @@ xcresulttool parity map
 		export attachments
 		export metrics
 		metadata get
+		metadata addExternalLocation
 	•	Not yet implemented:
 		export object
 		formatDescription get

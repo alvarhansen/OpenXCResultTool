@@ -14,12 +14,7 @@ struct MetadataBuilder {
     }
 
     private func loadMetadata() throws -> [String: Any] {
-        let data = try Data(contentsOf: plistURL)
-        let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
-        guard let dict = plist as? [String: Any] else {
-            throw MetadataError("Invalid Info.plist metadata.")
-        }
-
+        let dict = try readPlist()
         let dateCreated = (dict["dateCreated"] as? Date).map { formatDate($0) } ?? ""
         let externalLocations = dict["externalLocations"] as? [[String: Any]] ?? []
         let rootId = dict["rootId"] as? [String: Any] ?? [:]
@@ -33,6 +28,43 @@ struct MetadataBuilder {
             "storage": storage,
             "version": version
         ]
+    }
+
+    func addExternalLocation(identifier: String, link: String, description: String?) throws {
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        var dict = try readPlist(format: &format)
+
+        var locations = dict["externalLocations"] as? [[String: Any]] ?? []
+        var entry: [String: Any] = [
+            "identifier": identifier,
+            "link": link
+        ]
+        if let description, !description.isEmpty {
+            entry["description"] = description
+        }
+        locations.append(entry)
+        dict["externalLocations"] = locations
+
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: dict,
+            format: format,
+            options: 0
+        )
+        try data.write(to: plistURL, options: [.atomic])
+    }
+
+    private func readPlist(format: inout PropertyListSerialization.PropertyListFormat) throws -> [String: Any] {
+        let data = try Data(contentsOf: plistURL)
+        let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: &format)
+        guard let dict = plist as? [String: Any] else {
+            throw MetadataError("Invalid Info.plist metadata.")
+        }
+        return dict
+    }
+
+    private func readPlist() throws -> [String: Any] {
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        return try readPlist(format: &format)
     }
 
     private func formatDate(_ date: Date) -> String {

@@ -497,7 +497,7 @@ struct LogCommand: ParsableCommand {
 struct Metadata: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Metadata commands.",
-        subcommands: [MetadataGet.self]
+        subcommands: [MetadataGet.self, MetadataAddExternalLocation.self]
     )
 }
 
@@ -518,6 +518,34 @@ struct MetadataGet: ParsableCommand {
         let data = try builder.metadataJSON(compact: compact)
         FileHandle.standardOutput.write(data)
         FileHandle.standardOutput.write(Data([0x0A]))
+    }
+}
+
+struct MetadataAddExternalLocation: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "addExternalLocation",
+        abstract: "Record an external location associated with the result bundle."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("identifier"), help: "External location identifier.")
+    var identifier: String
+
+    @Option(name: .customLong("link"), help: "External location link.")
+    var link: String
+
+    @Option(name: .customLong("description"), help: "Optional external location description.")
+    var description: String?
+
+    func run() throws {
+        let builder = MetadataBuilder(xcresultPath: path)
+        try builder.addExternalLocation(
+            identifier: identifier,
+            link: link,
+            description: description
+        )
     }
 }
 

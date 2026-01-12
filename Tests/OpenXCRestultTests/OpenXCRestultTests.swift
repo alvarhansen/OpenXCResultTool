@@ -390,6 +390,57 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolMetadataAddExternalLocationParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtureURL = fixturesDirectory()
+            .appendingPathComponent("Test-RandomStuff-2026.01.11_12-36-33-+0200.xcresult")
+        let baseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        let expectedURL = baseURL.appendingPathComponent("expected.xcresult")
+        let actualURL = baseURL.appendingPathComponent("actual.xcresult")
+
+        guard FileManager.default.fileExists(atPath: fixtureURL.path) else {
+            throw XCTSkip("Fixture not found at \(fixtureURL.path)")
+        }
+
+        try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: fixtureURL, to: expectedURL)
+        try FileManager.default.copyItem(at: fixtureURL, to: actualURL)
+        defer {
+            try? FileManager.default.removeItem(at: baseURL)
+        }
+
+        do {
+            try xcresulttoolAddExternalLocation(
+                xcrunURL: xcrunURL,
+                bundleURL: expectedURL,
+                identifier: "testid",
+                link: "https://example.com",
+                description: "Example"
+            )
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool metadata addExternalLocation failed: \(error.message)")
+        }
+
+        try openXcresultAddExternalLocation(
+            bundleURL: actualURL,
+            identifier: "testid",
+            link: "https://example.com",
+            description: "Example"
+        )
+
+        let expectedPlist = try normalizedPlistJSON(at: expectedURL.appendingPathComponent("Info.plist"))
+        let actualPlist = try normalizedPlistJSON(at: actualURL.appendingPathComponent("Info.plist"))
+        XCTAssertEqual(
+            actualPlist,
+            expectedPlist,
+            "Mismatch Info.plist after metadata addExternalLocation"
+        )
+    }
+
     func testXCResultToolTestDetailsParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -1030,6 +1081,46 @@ final class OpenXCRestultTests: XCTestCase {
         return output
     }
 
+    private func xcresulttoolAddExternalLocation(
+        xcrunURL: URL,
+        bundleURL: URL,
+        identifier: String,
+        link: String,
+        description: String?
+    ) throws {
+        let process = Process()
+        process.executableURL = xcrunURL
+        var arguments = [
+            "xcresulttool",
+            "metadata",
+            "addExternalLocation",
+            "--path",
+            bundleURL.path,
+            "--identifier",
+            identifier,
+            "--link",
+            link
+        ]
+        if let description {
+            arguments.append(contentsOf: ["--description", description])
+        }
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool metadata addExternalLocation failed for \(bundleURL.lastPathComponent): \(error)")
+        }
+    }
+
     private func xcresulttoolObjectJSON(
         xcrunURL: URL,
         fixtureURL: URL,
@@ -1156,6 +1247,20 @@ final class OpenXCRestultTests: XCTestCase {
     ) throws -> Data {
         let builder = MetadataBuilder(xcresultPath: fixturePath)
         return try builder.metadataJSON(compact: false)
+    }
+
+    private func openXcresultAddExternalLocation(
+        bundleURL: URL,
+        identifier: String,
+        link: String,
+        description: String?
+    ) throws {
+        let builder = MetadataBuilder(xcresultPath: bundleURL.path)
+        try builder.addExternalLocation(
+            identifier: identifier,
+            link: link,
+            description: description
+        )
     }
 
     private func openXcresultObjectOutput(
@@ -1392,6 +1497,39 @@ final class OpenXCRestultTests: XCTestCase {
             }
         }
         return candidate
+    }
+
+    private func normalizedPlistJSON(at url: URL) throws -> Data {
+        let data = try Data(contentsOf: url)
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: &format)
+        let jsonObject = plistToJSON(plist)
+        return try JSONSerialization.data(withJSONObject: jsonObject, options: [.sortedKeys])
+    }
+
+    private func plistToJSON(_ value: Any) -> Any {
+        if let date = value as? Date {
+            return plistDateFormatter().string(from: date)
+        }
+        if let dict = value as? [String: Any] {
+            var result: [String: Any] = [:]
+            for (key, value) in dict {
+                result[key] = plistToJSON(value)
+            }
+            return result
+        }
+        if let array = value as? [Any] {
+            return array.map { plistToJSON($0) }
+        }
+        return value
+    }
+
+    private func plistDateFormatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+        return formatter
     }
 }
 
