@@ -372,6 +372,61 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolFormatDescriptionParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        do {
+            let expected = try xcresulttoolFormatDescriptionOutput(
+                xcrunURL: xcrunURL,
+                includeEventStreamTypes: false,
+                hash: false
+            )
+            let actual = try openXcresultFormatDescriptionOutput(
+                includeEventStreamTypes: false,
+                hash: false
+            )
+            XCTAssertEqual(
+                try normalizedJSON(actual),
+                try normalizedJSON(expected),
+                "Mismatch formatDescription output"
+            )
+
+            let expectedEvent = try xcresulttoolFormatDescriptionOutput(
+                xcrunURL: xcrunURL,
+                includeEventStreamTypes: true,
+                hash: false
+            )
+            let actualEvent = try openXcresultFormatDescriptionOutput(
+                includeEventStreamTypes: true,
+                hash: false
+            )
+            XCTAssertEqual(
+                try normalizedJSON(actualEvent),
+                try normalizedJSON(expectedEvent),
+                "Mismatch formatDescription output with event stream types"
+            )
+
+            let expectedHash = try xcresulttoolFormatDescriptionOutput(
+                xcrunURL: xcrunURL,
+                includeEventStreamTypes: false,
+                hash: true
+            )
+            let actualHash = try openXcresultFormatDescriptionOutput(
+                includeEventStreamTypes: false,
+                hash: true
+            )
+            XCTAssertEqual(
+                normalizedText(actualHash),
+                normalizedText(expectedHash),
+                "Mismatch formatDescription hash output"
+            )
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool formatDescription failed: \(error.message)")
+        }
+    }
+
     func testXCResultToolAttachmentsExportParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -764,6 +819,11 @@ final class OpenXCRestultTests: XCTestCase {
     private func normalizedJSON(_ data: Data) throws -> Data {
         let object = try JSONSerialization.jsonObject(with: data, options: [])
         return try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+    }
+
+    private func normalizedText(_ data: Data) -> String {
+        let text = String(data: data, encoding: .utf8) ?? ""
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func normalizedGraphSignatures(_ data: Data) -> [String] {
@@ -1197,6 +1257,46 @@ final class OpenXCRestultTests: XCTestCase {
         return output
     }
 
+    private func xcresulttoolFormatDescriptionOutput(
+        xcrunURL: URL,
+        includeEventStreamTypes: Bool,
+        hash: Bool
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        var arguments = [
+            "xcresulttool",
+            "formatDescription",
+            "get",
+            "--legacy",
+            "--format",
+            "json"
+        ]
+        if includeEventStreamTypes {
+            arguments.append("--include-event-stream-types")
+        }
+        if hash {
+            arguments.append("--hash")
+        }
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool formatDescription failed: \(error)")
+        }
+
+        return output
+    }
+
     private func xcresulttoolMetadataJSON(
         xcrunURL: URL,
         fixtureURL: URL
@@ -1403,6 +1503,18 @@ final class OpenXCRestultTests: XCTestCase {
     ) throws -> Data {
         let builder = try GraphBuilder(xcresultPath: fixturePath)
         return try builder.graph(id: nil)
+    }
+
+    private func openXcresultFormatDescriptionOutput(
+        includeEventStreamTypes: Bool,
+        hash: Bool
+    ) throws -> Data {
+        let builder = FormatDescriptionBuilder()
+        if hash {
+            let signature = try builder.signature(includeEventStreamTypes: includeEventStreamTypes)
+            return Data((signature + "\n").utf8)
+        }
+        return try builder.descriptionJSON(includeEventStreamTypes: includeEventStreamTypes)
     }
 
     private func openXcresultMetadataOutput(

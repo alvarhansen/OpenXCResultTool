@@ -18,6 +18,9 @@ let package = Package(
                 .product(name: "libzstd", package: "zstd"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
             ],
+            resources: [
+                .process("Resources")
+            ],
             linkerSettings: [
                 .linkedLibrary("sqlite3")
             ]

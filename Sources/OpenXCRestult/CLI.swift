@@ -5,7 +5,7 @@ struct OpenXCRestultCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openxcrestult",
         abstract: "Read xcresult bundles without Xcode tooling.",
-        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, VersionCommand.self]
+        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, FormatDescriptionCommand.self, VersionCommand.self]
     )
 }
 
@@ -617,6 +617,61 @@ struct GraphCommand: ParsableCommand {
         let builder = try GraphBuilder(xcresultPath: path)
         let data = try builder.graph(id: id)
         FileHandle.standardOutput.write(data)
+    }
+}
+
+struct FormatDescriptionCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "formatDescription",
+        abstract: "Format description commands.",
+        subcommands: [FormatDescriptionGet.self],
+        defaultSubcommand: FormatDescriptionGet.self
+    )
+}
+
+struct FormatDescriptionGet: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "get",
+        abstract: "Print a description of the types making up the result bundle."
+    )
+
+    @Option(name: .customLong("format"), help: "Output format (json).")
+    var format: String = "json"
+
+    @Flag(name: .customLong("hash"), help: "Print only the format description signature hash.")
+    var hash = false
+
+    @Flag(name: .customLong("include-event-stream-types"), help: "Include event stream types in the description.")
+    var includeEventStreamTypes = false
+
+    @Flag(name: .customLong("legacy"), help: "Use legacy xcresulttool output behavior.")
+    var legacy = false
+
+    @Option(name: .customLong("version"), help: "Schema version in major.minor.patch format (unsupported).")
+    var version: String?
+
+    func run() throws {
+        guard legacy else {
+            throw ValidationError("Legacy format is required for formatDescription output.")
+        }
+        guard version == nil else {
+            throw ValidationError("Versioned output is not supported yet.")
+        }
+        if !hash, format != "json" {
+            throw ValidationError("Only --format json is supported.")
+        }
+
+        let builder = FormatDescriptionBuilder()
+        if hash {
+            let signature = try builder.signature(includeEventStreamTypes: includeEventStreamTypes)
+            FileHandle.standardOutput.write(Data((signature + "\n").utf8))
+        } else {
+            let data = try builder.descriptionJSON(includeEventStreamTypes: includeEventStreamTypes)
+            FileHandle.standardOutput.write(data)
+            if data.last != 0x0A {
+                FileHandle.standardOutput.write(Data([0x0A]))
+            }
+        }
     }
 }
 
