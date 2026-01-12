@@ -381,10 +381,12 @@ final class OpenXCRestultTests: XCTestCase {
         for fixtureURL in fixtures {
             let expected = try xcresulttoolObjectJSON(
                 xcrunURL: xcrunURL,
-                fixtureURL: fixtureURL
+                fixtureURL: fixtureURL,
+                id: nil
             )
             let actual = try openXcresultObjectOutput(
-                fixturePath: fixtureURL.path
+                fixturePath: fixtureURL.path,
+                id: nil
             )
 
             let normalizedActual = try normalizedJSON(actual)
@@ -395,6 +397,29 @@ final class OpenXCRestultTests: XCTestCase {
                 normalizedExpected,
                 "Mismatch for fixture \(fixtureURL.lastPathComponent) (object)"
             )
+
+            let expectedObject = try JSONSerialization.jsonObject(with: expected, options: [])
+            let referenceId = logReferenceId(in: expectedObject) ?? firstReferenceId(in: expectedObject)
+            if let referenceId {
+                let expectedReference = try xcresulttoolObjectJSON(
+                    xcrunURL: xcrunURL,
+                    fixtureURL: fixtureURL,
+                    id: referenceId
+                )
+                let actualReference = try openXcresultObjectOutput(
+                    fixturePath: fixtureURL.path,
+                    id: referenceId
+                )
+
+                let normalizedRefActual = try normalizedJSON(actualReference)
+                let normalizedRefExpected = try normalizedJSON(expectedReference)
+
+                XCTAssertEqual(
+                    normalizedRefActual,
+                    normalizedRefExpected,
+                    "Mismatch for fixture \(fixtureURL.lastPathComponent) (object id)"
+                )
+            }
         }
     }
 
@@ -622,11 +647,12 @@ final class OpenXCRestultTests: XCTestCase {
 
     private func xcresulttoolObjectJSON(
         xcrunURL: URL,
-        fixtureURL: URL
+        fixtureURL: URL,
+        id: String?
     ) throws -> Data {
         let process = Process()
         process.executableURL = xcrunURL
-        process.arguments = [
+        var arguments = [
             "xcresulttool",
             "get",
             "object",
@@ -636,6 +662,10 @@ final class OpenXCRestultTests: XCTestCase {
             "--format",
             "json"
         ]
+        if let id {
+            arguments.append(contentsOf: ["--id", id])
+        }
+        process.arguments = arguments
 
         let outputPipe = Pipe()
         process.standardOutput = outputPipe
@@ -696,12 +726,62 @@ final class OpenXCRestultTests: XCTestCase {
     }
 
     private func openXcresultObjectOutput(
-        fixturePath: String
+        fixturePath: String,
+        id: String?
     ) throws -> Data {
         let store = try XCResultFileBackedStore(xcresultPath: fixturePath)
-        let rawValue = try store.loadObject(id: store.rootId)
+        let objectId = id ?? store.rootId
+        let rawValue = try store.loadObject(id: objectId)
         let json = rawValue.toLegacyJSONValue()
         return try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
+    }
+
+    private func firstReferenceId(in object: Any) -> String? {
+        if let dict = object as? [String: Any] {
+            if let type = dict["_type"] as? [String: Any],
+               type["_name"] as? String == "Reference",
+               let idDict = dict["id"] as? [String: Any],
+               let value = idDict["_value"] as? String {
+                return value
+            }
+            for value in dict.values {
+                if let found = firstReferenceId(in: value) {
+                    return found
+                }
+            }
+        } else if let array = object as? [Any] {
+            for value in array {
+                if let found = firstReferenceId(in: value) {
+                    return found
+                }
+            }
+        }
+        return nil
+    }
+
+    private func logReferenceId(in object: Any) -> String? {
+        guard let root = object as? [String: Any],
+              let actions = root["actions"] as? [String: Any],
+              let values = actions["_values"] as? [Any],
+              let first = values.first as? [String: Any] else {
+            return nil
+        }
+
+        if let actionResult = first["actionResult"] as? [String: Any],
+           let logRef = actionResult["logRef"] as? [String: Any],
+           let idDict = logRef["id"] as? [String: Any],
+           let value = idDict["_value"] as? String {
+            return value
+        }
+
+        if let buildResult = first["buildResult"] as? [String: Any],
+           let logRef = buildResult["logRef"] as? [String: Any],
+           let idDict = logRef["id"] as? [String: Any],
+           let value = idDict["_value"] as? String {
+            return value
+        }
+
+        return nil
     }
 }
 
