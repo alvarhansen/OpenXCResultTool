@@ -88,6 +88,17 @@ Debug/Reverse-Engineering Workflow (Project Notes)
 
 Use the xcresulttool JSON as the oracle, then map fields to SQLite tables.
 
+CLI quick reference
+	•	openxcrestult get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcrestult get test-results tests --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcrestult get test-results test-details --path Tests/Fixtures/<bundle>.xcresult --test-id "<TestId>" --format json
+	•	openxcrestult get test-results activities --path Tests/Fixtures/<bundle>.xcresult --test-id "<TestId>" --format json
+	•	openxcrestult get test-results metrics --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcrestult get test-results insights --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcrestult get log --path Tests/Fixtures/<bundle>.xcresult --type build --format json
+	•	openxcrestult get log --path Tests/Fixtures/<bundle>.xcresult --type action --format json
+	•	openxcrestult get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id "<ObjectId>" --format json
+
 Core commands
 	•	Dump the summary JSON (oracle):
 		xcrun xcresulttool get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json
