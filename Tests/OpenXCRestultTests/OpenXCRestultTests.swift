@@ -238,6 +238,53 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testMergeCombinesRowsAndData() throws {
+        let fixtureNames = [
+            "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+            "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+        ]
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
+
+        for fixtureURL in fixtureURLs {
+            guard FileManager.default.fileExists(atPath: fixtureURL.path) else {
+                throw XCTSkip("Fixture not found at \(fixtureURL.path)")
+            }
+        }
+
+        let outputURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("merged-\(UUID().uuidString).xcresult")
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        let builder = MergeBuilder(
+            inputPaths: fixtureURLs.map { $0.path },
+            outputPath: outputURL.path
+        )
+        try builder.merge()
+
+        let outputDB = outputURL.appendingPathComponent("database.sqlite3")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outputDB.path))
+
+        let tables = try tableNames(in: outputDB)
+        for table in tables {
+            var expectedCount: Int64 = 0
+            for fixtureURL in fixtureURLs {
+                expectedCount += try rowCount(
+                    in: fixtureURL.appendingPathComponent("database.sqlite3"),
+                    table: table
+                )
+            }
+            let actualCount = try rowCount(in: outputDB, table: table)
+            XCTAssertEqual(actualCount, expectedCount, "Mismatch merged row count for table \(table)")
+        }
+
+        var expectedDataFiles = Set<String>()
+        for fixtureURL in fixtureURLs {
+            expectedDataFiles.formUnion(try dataFileNames(in: fixtureURL))
+        }
+        let actualDataFiles = try dataFileNames(in: outputURL)
+        XCTAssertEqual(actualDataFiles, expectedDataFiles, "Mismatch merged Data directory contents")
+    }
+
     func testXCResultToolContentAvailabilityParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -865,6 +912,47 @@ final class OpenXCRestultTests: XCTestCase {
         return contents
             .filter { $0.pathExtension == "xcresult" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    private func tableNames(in databaseURL: URL) throws -> [String] {
+        let database = try SQLiteDatabase(path: databaseURL.path)
+        let names = try database.query(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+            ORDER BY name;
+            """
+        ) { statement in
+            SQLiteDatabase.string(statement, 0) ?? ""
+        }
+        return names.filter { !$0.isEmpty }
+    }
+
+    private func rowCount(in databaseURL: URL, table: String) throws -> Int64 {
+        let database = try SQLiteDatabase(path: databaseURL.path)
+        let count = try database.queryOne("SELECT COUNT(*) FROM \"\(table)\";") { statement in
+            SQLiteDatabase.int(statement, 0) ?? 0
+        } ?? 0
+        return Int64(count)
+    }
+
+    private func dataFileNames(in bundleURL: URL) throws -> Set<String> {
+        let dataURL = bundleURL.appendingPathComponent("Data")
+        guard FileManager.default.fileExists(atPath: dataURL.path) else {
+            return []
+        }
+        let contents = try FileManager.default.contentsOfDirectory(
+            at: dataURL,
+            includingPropertiesForKeys: [.isRegularFileKey]
+        )
+        var names = Set<String>()
+        for fileURL in contents {
+            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+            guard values.isRegularFile == true else { continue }
+            names.insert(fileURL.lastPathComponent)
+        }
+        return names
     }
 
     private func assertMatchesSnapshots(

@@ -108,6 +108,7 @@ CLI quick reference
 	•	openxcrestult formatDescription get --legacy [--format json] [--hash] [--include-event-stream-types]
 	•	openxcrestult formatDescription diff --legacy [--format text | markdown] <version1.json> <version2.json>
 	•	openxcrestult compare <comparison.xcresult> --baseline-path <baseline.xcresult> [--summary] [--test-failures] [--tests] [--build-warnings] [--analyzer-issues]
+	•	openxcrestult merge --output-path <merged.xcresult> <bundle1.xcresult> <bundle2.xcresult> [<bundleN.xcresult>]
 	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
 	•	openxcrestult metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
 	•	openxcrestult version
@@ -127,12 +128,10 @@ xcresulttool parity map
 		formatDescription get
 		formatDescription diff
 		compare
+		merge (OpenXCRestult uses SQLite + Data union; output differs from xcresulttool)
 		metadata get
 		metadata addExternalLocation
 		version
-	•	Not yet implemented:
-		merge
-
 Core commands
 	•	Dump the summary JSON (oracle):
 		xcrun xcresulttool get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json

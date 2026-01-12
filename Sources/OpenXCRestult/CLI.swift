@@ -5,7 +5,7 @@ struct OpenXCRestultCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openxcrestult",
         abstract: "Read xcresult bundles without Xcode tooling.",
-        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, FormatDescriptionCommand.self, CompareCommand.self, VersionCommand.self]
+        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, FormatDescriptionCommand.self, CompareCommand.self, MergeCommand.self, VersionCommand.self]
     )
 }
 
@@ -799,6 +799,31 @@ struct CompareCommand: ParsableCommand {
         let data = try encoder.encode(output)
         FileHandle.standardOutput.write(data)
         FileHandle.standardOutput.write(Data([0x0A]))
+    }
+}
+
+struct MergeCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "merge",
+        abstract: "Merge multiple xcresult bundles into one."
+    )
+
+    @Option(name: .customLong("output-path"), help: "Destination path for the merged .xcresult bundle.")
+    var outputPath: String
+
+    @Argument(help: "Result bundle paths to merge.")
+    var inputPaths: [String]
+
+    func run() throws {
+        guard inputPaths.count >= 2 else {
+            throw ValidationError("Two or more result bundle paths are required to merge.")
+        }
+
+        let builder = MergeBuilder(inputPaths: inputPaths, outputPath: outputPath)
+        try builder.merge()
+
+        let output = "[v3] Merged to: \(outputPath)\n"
+        FileHandle.standardOutput.write(Data(output.utf8))
     }
 }
 
