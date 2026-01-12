@@ -107,6 +107,7 @@ CLI quick reference
 	•	openxcrestult graph --legacy --path Tests/Fixtures/<bundle>.xcresult [--id "<ObjectId>"]
 	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
 	•	openxcrestult metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
+	•	openxcrestult version
 
 xcresulttool parity map
 	•	Implemented (OpenXCRestult parity targets):
@@ -122,11 +123,11 @@ xcresulttool parity map
 		graph
 		metadata get
 		metadata addExternalLocation
+		version
 	•	Not yet implemented:
 		formatDescription get
 		formatDescription diff
 		merge
-		version
 		compare
 
 Core commands

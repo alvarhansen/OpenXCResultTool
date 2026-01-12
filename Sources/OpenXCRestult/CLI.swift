@@ -5,7 +5,7 @@ struct OpenXCRestultCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openxcrestult",
         abstract: "Read xcresult bundles without Xcode tooling.",
-        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self]
+        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, VersionCommand.self]
     )
 }
 
@@ -617,6 +617,20 @@ struct GraphCommand: ParsableCommand {
         let builder = try GraphBuilder(xcresultPath: path)
         let data = try builder.graph(id: id)
         FileHandle.standardOutput.write(data)
+    }
+}
+
+struct VersionCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "version",
+        abstract: "Print the version of OpenXCRestult."
+    )
+
+    func run() throws {
+        let output = """
+        openxcrestult version \(OpenXCRestultVersion.tool) (schema version: \(OpenXCRestultVersion.schema), legacy commands format version: \(OpenXCRestultVersion.legacyFormat))
+        """
+        FileHandle.standardOutput.write(Data((output + "\n").utf8))
     }
 }
 
