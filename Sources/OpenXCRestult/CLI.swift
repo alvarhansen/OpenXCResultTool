@@ -12,7 +12,7 @@ struct OpenXCRestultCLI: ParsableCommand {
 struct Get: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Fetch data from an xcresult bundle.",
-        subcommands: [TestResults.self, LogCommand.self]
+        subcommands: [TestResults.self, ObjectCommand.self, LogCommand.self]
     )
 }
 
@@ -332,6 +332,66 @@ struct LogCommand: ParsableCommand {
         FileHandle.standardOutput.write(data)
         if data.last != 0x0A {
             FileHandle.standardOutput.write(Data([0x0A]))
+        }
+    }
+}
+
+struct ObjectCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "object",
+        abstract: "Print a raw result object by id."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("id"), help: "Object identifier. Defaults to the root object.")
+    var id: String?
+
+    @Option(name: .customLong("format"), help: "Output format (json, raw).")
+    var format: String = "json"
+
+    @Flag(name: .customLong("compact"), help: "Emit compact JSON output.")
+    var compact = false
+
+    @Flag(name: .customLong("legacy"), help: "Use legacy xcresulttool output shape.")
+    var legacy = false
+
+    @Option(name: .customLong("version"), help: "Schema version in major.minor.patch format (unsupported).")
+    var version: String?
+
+    func run() throws {
+        guard version == nil else {
+            throw ValidationError("Versioned output is not supported yet.")
+        }
+        guard format == "json" || format == "raw" else {
+            throw ValidationError("Only --format json or raw is supported.")
+        }
+        if !legacy {
+            throw ValidationError("Legacy format is required for object output.")
+        }
+
+        let store = try XCResultFileBackedStore(xcresultPath: path)
+        let objectId = id ?? store.rootId
+
+        switch format {
+        case "raw":
+            let data = try store.loadRawObjectData(id: objectId)
+            FileHandle.standardOutput.write(data)
+            if data.last != 0x0A {
+                FileHandle.standardOutput.write(Data([0x0A]))
+            }
+        case "json":
+            let rawValue = try store.loadObject(id: objectId)
+            let json = rawValue.toLegacyJSONValue()
+            let options: JSONSerialization.WritingOptions = compact ? [] : [.prettyPrinted]
+            let data = try JSONSerialization.data(withJSONObject: json, options: options)
+            FileHandle.standardOutput.write(data)
+            if data.last != 0x0A {
+                FileHandle.standardOutput.write(Data([0x0A]))
+            }
+        default:
+            break
         }
     }
 }

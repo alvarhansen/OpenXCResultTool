@@ -97,6 +97,18 @@ Core commands
 	•	Quick counts:
 		sqlite3 Tests/Fixtures/<bundle>.xcresult/database.sqlite3 "select result, count(*) from TestCaseResultsByDestinationAndConfiguration where destination_fk is null and configuration_fk is null group by result;"
 
+Log parsing (fileBacked2 data.<id>)
+	•	Find the logRef IDs (action/build):
+		xcrun xcresulttool get object --legacy --path Tests/Fixtures/<bundle>.xcresult --format json
+		# actionResult.logRef.id._value and buildResult.logRef.id._value
+	•	Inspect the raw object data for a log:
+		xcrun xcresulttool get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id "<logRefId>" --format raw
+	•	The on-disk payload lives in Data/data.<id> and is usually zstd-compressed.
+		Check the magic bytes (0x28 B5 2F FD) and decompress with zstd if present.
+	•	Parity oracle for output shape:
+		xcrun xcresulttool get log --path Tests/Fixtures/<bundle>.xcresult --type build --format json
+		xcrun xcresulttool get log --path Tests/Fixtures/<bundle>.xcresult --type action --format json
+
 Known mappings (summary)
 	•	title: Actions.name + " - " + TestPlans.name
 	•	start/finish: Actions.started/finished + 978307200 (Core Data epoch)

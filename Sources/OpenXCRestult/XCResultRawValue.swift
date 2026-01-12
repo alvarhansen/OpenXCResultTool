@@ -56,6 +56,35 @@ struct XCResultRawValue {
         return dict
     }
 
+    func toLegacyJSONValue() -> Any {
+        if typeName == "Array" || (typeName == nil && fields.isEmpty && !elements.isEmpty) {
+            let values = elements.map { $0.toLegacyJSONValue() }
+            return [
+                "_type": ["_name": typeName ?? "Array"],
+                "_values": values
+            ]
+        }
+
+        if hasScalarOnly, let value = stringValue {
+            return [
+                "_type": ["_name": typeName ?? "String"],
+                "_value": value
+            ]
+        }
+
+        var dict: [String: Any] = [:]
+        if let typeName {
+            dict["_type"] = ["_name": typeName]
+        }
+        for (key, value) in fields where key != "_n" && key != "_v" && key != "_s" {
+            dict[key] = value.toLegacyJSONValue()
+        }
+        if !elements.isEmpty {
+            dict["_values"] = elements.map { $0.toLegacyJSONValue() }
+        }
+        return dict
+    }
+
     func toLogJSONValue(dateParser: XCResultDateParser) -> Any {
         if typeName == "Array" {
             return elements.map { $0.toLogJSONValue(dateParser: dateParser) }

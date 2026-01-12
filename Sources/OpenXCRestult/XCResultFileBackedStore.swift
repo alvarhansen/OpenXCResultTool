@@ -18,6 +18,10 @@ struct XCResultFileBackedStore {
         return try parser.parse()
     }
 
+    func loadRawObjectData(id: String) throws -> Data {
+        try loadRawData(id: id)
+    }
+
     private func loadRawData(id: String) throws -> Data {
         let dataFile = dataURL.appendingPathComponent("data.\(id)")
         let data = try Data(contentsOf: dataFile)
