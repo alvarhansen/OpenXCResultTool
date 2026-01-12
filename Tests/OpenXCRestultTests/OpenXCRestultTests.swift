@@ -239,36 +239,22 @@ final class OpenXCRestultTests: XCTestCase {
     }
 
     func testMergeCombinesRowsAndData() throws {
-        let fixtureNames = [
-            "Test-RandomStuff-2026.01.11_12-36-33-+0200",
-            "Test-RandomStuff-2026.01.11_14-12-06-+0200",
-        ]
-        let outputURL = try mergeFixtures(fixtureNames)
-        defer { try? FileManager.default.removeItem(at: outputURL) }
+        try assertMergedRowsAndData(
+            fixtureNames: [
+                "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+            ]
+        )
+    }
 
-        let outputDB = outputURL.appendingPathComponent("database.sqlite3")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: outputDB.path))
-
-        let tables = try tableNames(in: outputDB)
-        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
-        for table in tables {
-            var expectedCount: Int64 = 0
-            for fixtureURL in fixtureURLs {
-                expectedCount += try rowCount(
-                    in: fixtureURL.appendingPathComponent("database.sqlite3"),
-                    table: table
-                )
-            }
-            let actualCount = try rowCount(in: outputDB, table: table)
-            XCTAssertEqual(actualCount, expectedCount, "Mismatch merged row count for table \(table)")
-        }
-
-        var expectedDataFiles = Set<String>()
-        for fixtureURL in fixtureURLs {
-            expectedDataFiles.formUnion(try dataFileNames(in: fixtureURL))
-        }
-        let actualDataFiles = try dataFileNames(in: outputURL)
-        XCTAssertEqual(actualDataFiles, expectedDataFiles, "Mismatch merged Data directory contents")
+    func testMergeCombinesRowsAndDataWithThreeBundles() throws {
+        try assertMergedRowsAndData(
+            fixtureNames: [
+                "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+                "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+                "Test-Kickstarter-Framework-iOS-2026.01.11_21-21-05-+0200",
+            ]
+        )
     }
 
     func testMergeForeignKeyIntegrity() throws {
@@ -300,6 +286,7 @@ final class OpenXCRestultTests: XCTestCase {
         let fixtureNames = [
             "Test-RandomStuff-2026.01.11_12-36-33-+0200",
             "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+            "Test-Kickstarter-Framework-iOS-2026.01.11_21-21-05-+0200",
         ]
         let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
         let outputURL = try mergeFixtures(fixtureNames)
@@ -309,6 +296,14 @@ final class OpenXCRestultTests: XCTestCase {
             ForeignKeyCheck(table: "TestCaseRuns", column: "testCase_fk", referencedTable: "TestCases"),
             ForeignKeyCheck(table: "TestCaseRuns", column: "testSuiteRun_fk", referencedTable: "TestSuiteRuns"),
             ForeignKeyCheck(table: "TestSuiteRuns", column: "testableRun_fk", referencedTable: "TestableRuns"),
+            ForeignKeyCheck(table: "TestCaseResultsByDestinationAndConfiguration", column: "testCase_fk", referencedTable: "TestCases"),
+            ForeignKeyCheck(table: "TestCaseResultsByDestinationAndConfiguration", column: "destination_fk", referencedTable: "RunDestinations"),
+            ForeignKeyCheck(table: "TestableRuns", column: "testable_fk", referencedTable: "Testables"),
+            ForeignKeyCheck(table: "TestableRuns", column: "testPlanRun_fk", referencedTable: "TestPlanRuns"),
+            ForeignKeyCheck(table: "TestSuites", column: "testable_fk", referencedTable: "Testables"),
+            ForeignKeyCheck(table: "TestIssues", column: "testCaseRun_fk", referencedTable: "TestCaseRuns"),
+            ForeignKeyCheck(table: "Attachments", column: "activity_fk", referencedTable: "Activities"),
+            ForeignKeyCheck(table: "Activities", column: "testCaseRun_fk", referencedTable: "TestCaseRuns"),
             ForeignKeyCheck(table: "TestPlanRuns", column: "action_fk", referencedTable: "Actions"),
             ForeignKeyCheck(table: "TestPlanRuns", column: "testPlan_fk", referencedTable: "TestPlans"),
             ForeignKeyCheck(table: "PerformanceMetrics", column: "testCaseRun_fk", referencedTable: "TestCaseRuns"),
@@ -337,6 +332,7 @@ final class OpenXCRestultTests: XCTestCase {
         let fixtureNames = [
             "Test-RandomStuff-2026.01.11_12-36-33-+0200",
             "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+            "Test-Kickstarter-Framework-iOS-2026.01.11_21-21-05-+0200",
         ]
         let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
         let outputURL = try mergeFixtures(fixtureNames)
@@ -980,6 +976,35 @@ final class OpenXCRestultTests: XCTestCase {
         return contents
             .filter { $0.pathExtension == "xcresult" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    private func assertMergedRowsAndData(fixtureNames: [String]) throws {
+        let outputURL = try mergeFixtures(fixtureNames)
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        let outputDB = outputURL.appendingPathComponent("database.sqlite3")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outputDB.path))
+
+        let tables = try tableNames(in: outputDB)
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
+        for table in tables {
+            var expectedCount: Int64 = 0
+            for fixtureURL in fixtureURLs {
+                expectedCount += try rowCount(
+                    in: fixtureURL.appendingPathComponent("database.sqlite3"),
+                    table: table
+                )
+            }
+            let actualCount = try rowCount(in: outputDB, table: table)
+            XCTAssertEqual(actualCount, expectedCount, "Mismatch merged row count for table \(table)")
+        }
+
+        var expectedDataFiles = Set<String>()
+        for fixtureURL in fixtureURLs {
+            expectedDataFiles.formUnion(try dataFileNames(in: fixtureURL))
+        }
+        let actualDataFiles = try dataFileNames(in: outputURL)
+        XCTAssertEqual(actualDataFiles, expectedDataFiles, "Mismatch merged Data directory contents")
     }
 
     private func mergeFixtures(_ fixtureNames: [String]) throws -> URL {
