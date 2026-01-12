@@ -343,6 +343,35 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolGraphParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        do {
+            for fixtureURL in fixtures {
+                let expected = try xcresulttoolGraphOutput(
+                    xcrunURL: xcrunURL,
+                    fixtureURL: fixtureURL
+                )
+                let actual = try openXcresultGraphOutput(
+                    fixturePath: fixtureURL.path
+                )
+
+                let normalizedActual = normalizedGraphSignatures(actual)
+                let normalizedExpected = normalizedGraphSignatures(expected)
+                XCTAssertEqual(
+                    normalizedActual,
+                    normalizedExpected,
+                    "Mismatch graph for fixture \(fixtureURL.lastPathComponent)"
+                )
+            }
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool graph failed: \(error.message)")
+        }
+    }
+
     func testXCResultToolAttachmentsExportParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -737,6 +766,24 @@ final class OpenXCRestultTests: XCTestCase {
         return try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
     }
 
+    private func normalizedGraphSignatures(_ data: Data) -> [String] {
+        guard let text = String(data: data, encoding: .utf8) else { return [] }
+        var signatures: [String] = []
+        var currentType: String?
+        for line in text.split(whereSeparator: \.isNewline) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("* ") {
+                currentType = String(trimmed.dropFirst(2))
+            } else if trimmed.hasPrefix("- Id: ") {
+                guard let type = currentType else { continue }
+                let id = String(trimmed.dropFirst(6))
+                signatures.append("\(type)|\(id)")
+                currentType = nil
+            }
+        }
+        return signatures.sorted()
+    }
+
     private func normalizedParityJSON(_ data: Data, command: XCResulttoolCommand) throws -> Data {
         switch command {
         case .insights:
@@ -1119,6 +1166,37 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    private func xcresulttoolGraphOutput(
+        xcrunURL: URL,
+        fixtureURL: URL
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "graph",
+            "--legacy",
+            "--path",
+            fixtureURL.path
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool graph failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+
+        return output
+    }
+
     private func xcresulttoolMetadataJSON(
         xcrunURL: URL,
         fixtureURL: URL
@@ -1318,6 +1396,13 @@ final class OpenXCRestultTests: XCTestCase {
     ) throws {
         let exporter = try ObjectExporter(xcresultPath: fixturePath)
         try exporter.export(id: objectId, type: .directory, to: outputURL.path)
+    }
+
+    private func openXcresultGraphOutput(
+        fixturePath: String
+    ) throws -> Data {
+        let builder = try GraphBuilder(xcresultPath: fixturePath)
+        return try builder.graph(id: nil)
     }
 
     private func openXcresultMetadataOutput(

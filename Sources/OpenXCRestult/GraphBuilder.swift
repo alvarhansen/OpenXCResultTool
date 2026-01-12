@@ -62,17 +62,16 @@ struct GraphBuilder {
         guard fileManager.fileExists(atPath: refsURL.path) else {
             return nil
         }
-        let entries = try loadDirectoryEntries(id: id)
+        let data = try store.loadRawObjectData(id: id)
+        guard isJSONArray(data) else { return nil }
+        guard let entries = try? JSONDecoder().decode([GraphDirectoryEntry].self, from: data) else {
+            return nil
+        }
         let refs = try loadRefs(id: id)
         guard entries.count == refs.count else {
-            throw GraphError("Directory refs mismatch for id \(id).")
+            return nil
         }
         return GraphDirectoryNode(entries: entries, refs: refs)
-    }
-
-    private func loadDirectoryEntries(id: String) throws -> [GraphDirectoryEntry] {
-        let data = try store.loadRawObjectData(id: id)
-        return try JSONDecoder().decode([GraphDirectoryEntry].self, from: data)
     }
 
     private func loadRefs(id: String) throws -> [String] {
@@ -100,6 +99,13 @@ struct GraphBuilder {
         return refs
     }
 
+    private func isJSONArray(_ data: Data) -> Bool {
+        guard let index = data.firstIndex(where: { !Self.jsonWhitespace.contains($0) }) else {
+            return false
+        }
+        return data[index] == 0x5B
+    }
+
     private func dataSize(id: String) -> Int {
         let dataURL = store.dataURL.appendingPathComponent("data.\(id)")
         guard let attributes = try? fileManager.attributesOfItem(atPath: dataURL.path),
@@ -108,6 +114,8 @@ struct GraphBuilder {
         }
         return size.intValue
     }
+
+    private static let jsonWhitespace: Set<UInt8> = [0x09, 0x0A, 0x0D, 0x20]
 
     private func collectReferenceIds(from value: XCResultRawValue) -> [String] {
         if value.typeName == "Reference" {
