@@ -33,10 +33,9 @@ struct TestResultsTestDetailsBuilder {
         let testResult = TestResultFormatter.aggregate(mappedResults) ?? ""
         let testDescription = "Test case with \(runCount) \(runCount == 1 ? "run" : "runs")"
 
-        let devices = try loadDevices()
-        let configurations = try context.fetchConfigurations().map {
-            TestPlanConfiguration(configurationId: String($0.id), configurationName: $0.name)
-        }
+        let deviceInfoByAction = try deviceInfoByAction(for: runs)
+        let devices = loadDevices(deviceInfoByAction: deviceInfoByAction)
+        let configurations = try loadConfigurations(for: runs)
         let startTime = try fetchStartTime(runIds: runIds)
         let hasMediaAttachments = try fetchMediaAttachments(runIds: runIds)
         let hasPerformanceMetrics = try fetchPerformanceMetrics(runIds: runIds)
@@ -46,7 +45,11 @@ struct TestResultsTestDetailsBuilder {
         if hasArguments {
             testRuns = buildArgumentRunNodes(runs: runs, argumentsByRun: argumentsByRun)
         } else {
-            testRuns = try buildDeviceRunNodes(runs: runs, testCase: testCase)
+            testRuns = try buildDeviceRunNodes(
+                runs: runs,
+                testCase: testCase,
+                deviceInfoByAction: deviceInfoByAction
+            )
         }
 
         return TestResultsTestDetails(
@@ -67,38 +70,27 @@ struct TestResultsTestDetailsBuilder {
         )
     }
 
-    private func loadDevices() throws -> [SummaryDevice] {
-        guard let deviceInfo = try loadDeviceInfo() else { return [] }
-        return [deviceInfo.device]
+    private func loadDevices(deviceInfoByAction: [Int: DeviceInfo]) -> [SummaryDevice] {
+        let devices = deviceInfoByAction.values.map(\.device)
+        return devices.sorted {
+            if $0.deviceName != $1.deviceName {
+                return $0.deviceName < $1.deviceName
+            }
+            return $0.deviceId < $1.deviceId
+        }
     }
 
-    private func loadDeviceInfo() throws -> DeviceInfo? {
-        guard let runDestination = try context.fetchRunDestination(runDestinationId: context.action.runDestinationId) else {
-            return nil
+    private func loadConfigurations(for runs: [TestCaseRunRow]) throws -> [TestPlanConfiguration] {
+        let planRunsById = Dictionary(uniqueKeysWithValues: context.testPlanRuns.map { ($0.id, $0) })
+        let configurationIds = Set(runs.compactMap { planRunsById[$0.testPlanRunId]?.configurationId })
+        let sortedIds = configurationIds.sorted()
+        return try sortedIds.map { id in
+            let configuration = try context.fetchConfiguration(configurationId: id)
+            return TestPlanConfiguration(
+                configurationId: String(configuration.id),
+                configurationName: configuration.name
+            )
         }
-        guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
-            throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
-        }
-        guard let platform = try context.fetchPlatform(platformId: device.platformId) else {
-            throw SQLiteError("Missing platform with rowid \(device.platformId).")
-        }
-        let osBuildNumber = TestResultsSummaryBuilder.extractBuildNumber(device.operatingSystemVersionWithBuildNumber)
-        let summaryDevice = SummaryDevice(
-            architecture: runDestination.architecture,
-            deviceId: device.identifier,
-            deviceName: runDestination.name,
-            modelName: device.modelName,
-            osBuildNumber: osBuildNumber,
-            osVersion: device.operatingSystemVersion,
-            platform: platform.userDescription
-        )
-        let details = "\(platform.userDescription) \(device.operatingSystemVersion)"
-        return DeviceInfo(
-            device: summaryDevice,
-            details: details,
-            name: runDestination.name,
-            identifier: device.identifier
-        )
     }
 
     private func buildArgumentRunNodes(
@@ -194,41 +186,102 @@ struct TestResultsTestDetailsBuilder {
 
     private func buildDeviceRunNodes(
         runs: [TestCaseRunRow],
-        testCase: TestCaseRow
+        testCase: TestCaseRow,
+        deviceInfoByAction: [Int: DeviceInfo]
     ) throws -> [TestDetailNode] {
-        guard let deviceInfo = try loadDeviceInfo() else { return [] }
         let suiteName = try fetchSuiteName(testSuiteId: testCase.testSuiteId) ?? ""
-        let runsByPlanRun = Dictionary(grouping: runs, by: { $0.testPlanRunId })
-        var configurationNodes: [TestDetailNode] = []
-        for planRun in context.testPlanRuns {
-            guard let planRuns = runsByPlanRun[planRun.id], !planRuns.isEmpty else { continue }
-            let configuration = try context.fetchConfiguration(configurationId: planRun.configurationId)
-            let node = try buildConfigurationNode(
-                configuration: configuration,
-                runs: planRuns,
-                testCase: testCase,
-                suiteName: suiteName
-            )
-            configurationNodes.append(node)
+        let planRunsById = Dictionary(uniqueKeysWithValues: context.testPlanRuns.map { ($0.id, $0) })
+
+        var runsByAction: [Int: [Int: [TestCaseRunRow]]] = [:]
+        for run in runs {
+            guard let planRun = planRunsById[run.testPlanRunId] else { continue }
+            runsByAction[planRun.actionId, default: [:]][planRun.configurationId, default: []].append(run)
         }
 
-        guard !configurationNodes.isEmpty else { return [] }
-        let configResults = configurationNodes.compactMap { $0.result }
-        let durationSeconds = configurationNodes.compactMap { $0.durationInSeconds }.reduce(0, +)
-        let durationString = RunDurationFormatter.format(seconds: durationSeconds)
-        let result = TestResultFormatter.aggregate(configResults)
+        let sortedActions = context.actions.sorted {
+            let leftInfo = deviceInfoByAction[$0.id]
+            let rightInfo = deviceInfoByAction[$1.id]
+            let leftName = leftInfo?.name ?? ""
+            let rightName = rightInfo?.name ?? ""
+            if leftName != rightName { return leftName < rightName }
+            return (leftInfo?.identifier ?? "") < (rightInfo?.identifier ?? "")
+        }
 
-        let deviceNode = TestDetailNode(
-            children: configurationNodes,
-            details: deviceInfo.details,
-            duration: durationString,
-            durationInSeconds: durationSeconds,
-            name: deviceInfo.name,
-            nodeIdentifier: deviceInfo.identifier,
-            nodeType: "Device",
-            result: result
-        )
-        return [deviceNode]
+        var deviceNodes: [TestDetailNode] = []
+        for action in sortedActions {
+            guard let deviceInfo = deviceInfoByAction[action.id],
+                  let runsByConfig = runsByAction[action.id] else { continue }
+            let configurationIds = runsByConfig.keys.sorted()
+            var configurationNodes: [TestDetailNode] = []
+            for configurationId in configurationIds {
+                guard let configRuns = runsByConfig[configurationId], !configRuns.isEmpty else { continue }
+                let configuration = try context.fetchConfiguration(configurationId: configurationId)
+                let node = try buildConfigurationNode(
+                    configuration: configuration,
+                    runs: configRuns,
+                    testCase: testCase,
+                    suiteName: suiteName
+                )
+                configurationNodes.append(node)
+            }
+
+            guard !configurationNodes.isEmpty else { continue }
+            let configResults = configurationNodes.compactMap { $0.result }
+            let durationSeconds = configurationNodes.compactMap { $0.durationInSeconds }.reduce(0, +)
+            let durationString = RunDurationFormatter.format(seconds: durationSeconds)
+            let result = TestResultFormatter.aggregate(configResults)
+            let includeDuration = context.testPlanRuns.count == 1
+
+            let deviceNode = TestDetailNode(
+                children: configurationNodes,
+                details: deviceInfo.details,
+                duration: includeDuration ? durationString : nil,
+                durationInSeconds: includeDuration ? durationSeconds : nil,
+                name: deviceInfo.name,
+                nodeIdentifier: deviceInfo.identifier,
+                nodeType: "Device",
+                result: result
+            )
+            deviceNodes.append(deviceNode)
+        }
+
+        return deviceNodes
+    }
+
+    private func deviceInfoByAction(for runs: [TestCaseRunRow]) throws -> [Int: DeviceInfo] {
+        let planRunsById = Dictionary(uniqueKeysWithValues: context.testPlanRuns.map { ($0.id, $0) })
+        let actionIds = Set(runs.compactMap { planRunsById[$0.testPlanRunId]?.actionId })
+
+        var info: [Int: DeviceInfo] = [:]
+        for action in context.actions where actionIds.contains(action.id) {
+            guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
+                continue
+            }
+            guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
+                throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
+            }
+            guard let platform = try context.fetchPlatform(platformId: device.platformId) else {
+                throw SQLiteError("Missing platform with rowid \(device.platformId).")
+            }
+            let osBuildNumber = TestResultsSummaryBuilder.extractBuildNumber(device.operatingSystemVersionWithBuildNumber)
+            let summaryDevice = SummaryDevice(
+                architecture: runDestination.architecture,
+                deviceId: device.identifier,
+                deviceName: runDestination.name,
+                modelName: device.modelName,
+                osBuildNumber: osBuildNumber,
+                osVersion: device.operatingSystemVersion,
+                platform: platform.userDescription
+            )
+            let details = "\(platform.userDescription) \(device.operatingSystemVersion)"
+            info[action.id] = DeviceInfo(
+                device: summaryDevice,
+                details: details,
+                name: runDestination.name,
+                identifier: device.identifier
+            )
+        }
+        return info
     }
 
     private func buildConfigurationNode(

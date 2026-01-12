@@ -410,6 +410,46 @@ final class OpenXCRestultTests: XCTestCase {
                 try normalizedJSON(expectedAvailability),
                 "Mismatch for merged bundle (content-availability)"
             )
+
+            let detailTestIds = [
+                "RandomStuffTests/testExpectedFailure()",
+                "RandomStuffTests/testSkippedTest()",
+            ]
+            for testId in detailTestIds {
+                let expectedDetails = try xcresulttoolJSON(
+                    xcrunURL: xcrunURL,
+                    fixtureURL: outputURL,
+                    command: .testDetails,
+                    testId: testId
+                )
+                let actualDetails = try openXcresultOutput(
+                    fixturePath: outputURL.path,
+                    command: .testDetails,
+                    testId: testId
+                )
+                XCTAssertEqual(
+                    try normalizedParityJSON(actualDetails, command: .testDetails),
+                    try normalizedParityJSON(expectedDetails, command: .testDetails),
+                    "Mismatch for merged bundle (test-details \(testId))"
+                )
+
+                let expectedActivities = try xcresulttoolJSON(
+                    xcrunURL: xcrunURL,
+                    fixtureURL: outputURL,
+                    command: .activities,
+                    testId: testId
+                )
+                let actualActivities = try openXcresultOutput(
+                    fixturePath: outputURL.path,
+                    command: .activities,
+                    testId: testId
+                )
+                XCTAssertEqual(
+                    try normalizedParityJSON(actualActivities, command: .activities),
+                    try normalizedParityJSON(expectedActivities, command: .activities),
+                    "Mismatch for merged bundle (activities \(testId))"
+                )
+            }
         } catch let error as ProcessFailure {
             throw XCTSkip("xcresulttool failed for merged bundle: \(error.message)")
         }

@@ -132,6 +132,9 @@ xcresulttool parity map
 		metadata get
 		metadata addExternalLocation
 		version
+	Merged bundle notes:
+		•	When a merged bundle contains multiple actions/test plan runs, `get test-results tests` nests Device → Test Plan Configuration nodes under each Test Case, and summary statistics include the "tests ran on N configurations and M devices" entry. OpenXCRestult mirrors this behavior.
+		•	For `get test-results test-details`/`activities`, `xcresulttool` may require an identifier URL if a test identifier is duplicated across runs.
 Core commands
 	•	Dump the summary JSON (oracle):
 		xcrun xcresulttool get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json

@@ -15,7 +15,7 @@ struct TestResultsActivitiesBuilder {
             throw SQLiteError("Test case not found for identifier \(testId).")
         }
         let runs = try fetchTestCaseRuns(testCaseId: testCase.id)
-        let device = try loadDevice()
+        let devicesByAction = try loadDevicesByAction(for: runs)
         let suiteName = try fetchSuiteName(testSuiteId: testCase.testSuiteId) ?? ""
         let argumentsByRun = try fetchArguments(runIds: runs.map(\.id))
 
@@ -24,6 +24,7 @@ struct TestResultsActivitiesBuilder {
                 throw SQLiteError("Missing test plan run with rowid \(run.testPlanRunId).")
             }
             let configuration = try context.fetchConfiguration(configurationId: planRun.configurationId)
+            let device = devicesByAction[planRun.actionId] ?? emptySummaryDevice()
             let arguments = buildArgumentsList(argumentsByRun[run.id] ?? [])
             let activities = try buildActivities(
                 runId: run.id,
@@ -49,33 +50,44 @@ struct TestResultsActivitiesBuilder {
         )
     }
 
-    private func loadDevice() throws -> SummaryDevice {
-        guard let runDestination = try context.fetchRunDestination(runDestinationId: context.action.runDestinationId) else {
-            return SummaryDevice(
-                architecture: "",
-                deviceId: "",
-                deviceName: "",
-                modelName: "",
-                osBuildNumber: "",
-                osVersion: "",
-                platform: ""
+    private func loadDevicesByAction(for runs: [TestCaseRunRow]) throws -> [Int: SummaryDevice] {
+        let planRunsById = Dictionary(uniqueKeysWithValues: context.testPlanRuns.map { ($0.id, $0) })
+        let actionIds = Set(runs.compactMap { planRunsById[$0.testPlanRunId]?.actionId })
+        var devices: [Int: SummaryDevice] = [:]
+
+        for action in context.actions where actionIds.contains(action.id) {
+            guard let runDestination = try context.fetchRunDestination(runDestinationId: action.runDestinationId) else {
+                continue
+            }
+            guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
+                throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
+            }
+            guard let platform = try context.fetchPlatform(platformId: device.platformId) else {
+                throw SQLiteError("Missing platform with rowid \(device.platformId).")
+            }
+            let osBuildNumber = TestResultsSummaryBuilder.extractBuildNumber(device.operatingSystemVersionWithBuildNumber)
+            devices[action.id] = SummaryDevice(
+                architecture: runDestination.architecture,
+                deviceId: device.identifier,
+                deviceName: runDestination.name,
+                modelName: device.modelName,
+                osBuildNumber: osBuildNumber,
+                osVersion: device.operatingSystemVersion,
+                platform: platform.userDescription
             )
         }
-        guard let device = try context.fetchDevice(deviceId: runDestination.deviceId) else {
-            throw SQLiteError("Missing device with rowid \(runDestination.deviceId).")
-        }
-        guard let platform = try context.fetchPlatform(platformId: device.platformId) else {
-            throw SQLiteError("Missing platform with rowid \(device.platformId).")
-        }
-        let osBuildNumber = TestResultsSummaryBuilder.extractBuildNumber(device.operatingSystemVersionWithBuildNumber)
-        return SummaryDevice(
-            architecture: runDestination.architecture,
-            deviceId: device.identifier,
-            deviceName: runDestination.name,
-            modelName: device.modelName,
-            osBuildNumber: osBuildNumber,
-            osVersion: device.operatingSystemVersion,
-            platform: platform.userDescription
+        return devices
+    }
+
+    private func emptySummaryDevice() -> SummaryDevice {
+        SummaryDevice(
+            architecture: "",
+            deviceId: "",
+            deviceName: "",
+            modelName: "",
+            osBuildNumber: "",
+            osVersion: "",
+            platform: ""
         )
     }
 
