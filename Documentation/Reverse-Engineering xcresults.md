@@ -106,6 +106,7 @@ CLI quick reference
 	•	openxcrestult export object --legacy --path Tests/Fixtures/<bundle>.xcresult --output-path ./Object --type directory --id "<ObjectId>"
 	•	openxcrestult graph --legacy --path Tests/Fixtures/<bundle>.xcresult [--id "<ObjectId>"]
 	•	openxcrestult formatDescription get --legacy [--format json] [--hash] [--include-event-stream-types]
+	•	openxcrestult formatDescription diff --legacy [--format text | markdown] <version1.json> <version2.json>
 	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
 	•	openxcrestult metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
 	•	openxcrestult version
@@ -123,11 +124,11 @@ xcresulttool parity map
 		export object
 		graph
 		formatDescription get
+		formatDescription diff
 		metadata get
 		metadata addExternalLocation
 		version
 	•	Not yet implemented:
-		formatDescription diff
 		merge
 		compare
 

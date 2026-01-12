@@ -427,6 +427,57 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolFormatDescriptionDiffParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let baseURL = root.appendingPathComponent("Sources")
+            .appendingPathComponent("OpenXCRestult")
+            .appendingPathComponent("Resources")
+        let originalURL = baseURL.appendingPathComponent("formatDescription.json")
+        let eventURL = baseURL.appendingPathComponent("formatDescription-event-stream.json")
+
+        do {
+            let expectedText = try xcresulttoolFormatDescriptionDiffOutput(
+                xcrunURL: xcrunURL,
+                format: "text",
+                fromURL: originalURL,
+                toURL: eventURL
+            )
+            let actualText = try openXcresultFormatDescriptionDiffOutput(
+                format: "text",
+                fromURL: originalURL,
+                toURL: eventURL
+            )
+            XCTAssertEqual(
+                normalizedFormatDescriptionDiff(expectedText),
+                normalizedFormatDescriptionDiff(actualText),
+                "Mismatch formatDescription diff (text)"
+            )
+
+            let expectedMarkdown = try xcresulttoolFormatDescriptionDiffOutput(
+                xcrunURL: xcrunURL,
+                format: "markdown",
+                fromURL: originalURL,
+                toURL: eventURL
+            )
+            let actualMarkdown = try openXcresultFormatDescriptionDiffOutput(
+                format: "markdown",
+                fromURL: originalURL,
+                toURL: eventURL
+            )
+            XCTAssertEqual(
+                normalizedFormatDescriptionDiff(expectedMarkdown),
+                normalizedFormatDescriptionDiff(actualMarkdown),
+                "Mismatch formatDescription diff (markdown)"
+            )
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool formatDescription diff failed: \(error.message)")
+        }
+    }
+
     func testXCResultToolAttachmentsExportParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -842,6 +893,24 @@ final class OpenXCRestultTests: XCTestCase {
             }
         }
         return signatures.sorted()
+    }
+
+    private func normalizedFormatDescriptionDiff(_ data: Data) -> FormatDescriptionDiffSignature {
+        guard let text = String(data: data, encoding: .utf8) else {
+            return FormatDescriptionDiffSignature(versionLine: "", changes: [])
+        }
+        let lines = text.split(whereSeparator: \.isNewline).map(String.init)
+        let versionLine = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var changes: [String] = []
+        for line in lines {
+            if line.hasPrefix("* ") || line.hasPrefix("- ") {
+                changes.append(String(line.dropFirst(2)))
+            }
+        }
+        return FormatDescriptionDiffSignature(
+            versionLine: versionLine,
+            changes: changes.sorted()
+        )
     }
 
     private func normalizedParityJSON(_ data: Data, command: XCResulttoolCommand) throws -> Data {
@@ -1297,6 +1366,41 @@ final class OpenXCRestultTests: XCTestCase {
         return output
     }
 
+    private func xcresulttoolFormatDescriptionDiffOutput(
+        xcrunURL: URL,
+        format: String,
+        fromURL: URL,
+        toURL: URL
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "formatDescription",
+            "diff",
+            "--legacy",
+            "--format",
+            format,
+            fromURL.path,
+            toURL.path
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool formatDescription diff failed: \(error)")
+        }
+
+        return output
+    }
     private func xcresulttoolMetadataJSON(
         xcrunURL: URL,
         fixtureURL: URL
@@ -1515,6 +1619,23 @@ final class OpenXCRestultTests: XCTestCase {
             return Data((signature + "\n").utf8)
         }
         return try builder.descriptionJSON(includeEventStreamTypes: includeEventStreamTypes)
+    }
+
+    private func openXcresultFormatDescriptionDiffOutput(
+        format: String,
+        fromURL: URL,
+        toURL: URL
+    ) throws -> Data {
+        let builder = FormatDescriptionDiffBuilder()
+        let diff = try builder.diff(fromURL: fromURL, toURL: toURL)
+        let output: String
+        switch format {
+        case "markdown":
+            output = builder.markdownOutput(diff: diff)
+        default:
+            output = builder.textOutput(diff: diff)
+        }
+        return Data((output + "\n").utf8)
     }
 
     private func openXcresultMetadataOutput(
@@ -1937,4 +2058,9 @@ private struct MetricsManifestKey: Hashable, Comparable {
         }
         return lhs.identifier < rhs.identifier
     }
+}
+
+private struct FormatDescriptionDiffSignature: Equatable {
+    let versionLine: String
+    let changes: [String]
 }

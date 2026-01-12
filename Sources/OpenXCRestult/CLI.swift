@@ -624,7 +624,7 @@ struct FormatDescriptionCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "formatDescription",
         abstract: "Format description commands.",
-        subcommands: [FormatDescriptionGet.self],
+        subcommands: [FormatDescriptionGet.self, FormatDescriptionDiff.self],
         defaultSubcommand: FormatDescriptionGet.self
     )
 }
@@ -672,6 +672,48 @@ struct FormatDescriptionGet: ParsableCommand {
                 FileHandle.standardOutput.write(Data([0x0A]))
             }
         }
+    }
+}
+
+struct FormatDescriptionDiff: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "diff",
+        abstract: "Compute a list of changes between format descriptions."
+    )
+
+    @Option(name: .customLong("format"), help: "Output format (text or markdown).")
+    var format: String = "text"
+
+    @Flag(name: .customLong("legacy"), help: "Use legacy xcresulttool output behavior.")
+    var legacy = false
+
+    @Argument(help: "Format description JSON files.")
+    var paths: [String]
+
+    func run() throws {
+        guard legacy else {
+            throw ValidationError("Legacy format is required for formatDescription output.")
+        }
+        guard format == "text" || format == "markdown" else {
+            throw ValidationError("Only --format text or markdown is supported.")
+        }
+        guard paths.count == 2 else {
+            throw ValidationError("Exactly two format description files are required.")
+        }
+
+        let builder = FormatDescriptionDiffBuilder()
+        let diff = try builder.diff(
+            fromURL: URL(fileURLWithPath: paths[0]),
+            toURL: URL(fileURLWithPath: paths[1])
+        )
+        let output: String
+        switch format {
+        case "markdown":
+            output = builder.markdownOutput(diff: diff)
+        default:
+            output = builder.textOutput(diff: diff)
+        }
+        FileHandle.standardOutput.write(Data((output + "\n").utf8))
     }
 }
 
