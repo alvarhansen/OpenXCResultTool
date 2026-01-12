@@ -109,7 +109,8 @@ struct XCResultContext {
                Actions.host_fk,
                Actions.testPlan_fk,
                Invocations.scheme,
-               TestPlans.name
+               TestPlans.name,
+               Actions.orderInInvocation
         FROM Actions
         JOIN Invocations ON Invocations.rowid = Actions.invocation_fk
         JOIN TestPlans ON TestPlans.rowid = Actions.testPlan_fk
@@ -126,7 +127,8 @@ struct XCResultContext {
                 hostDeviceId: SQLiteDatabase.int(statement, 5),
                 testPlanId: SQLiteDatabase.int(statement, 6) ?? 0,
                 scheme: SQLiteDatabase.string(statement, 7) ?? "",
-                testPlanName: SQLiteDatabase.string(statement, 8) ?? ""
+                testPlanName: SQLiteDatabase.string(statement, 8) ?? "",
+                orderInInvocation: SQLiteDatabase.int(statement, 9) ?? 0
             )
         }
     }
@@ -160,6 +162,7 @@ struct ActionRow {
     let testPlanId: Int
     let scheme: String
     let testPlanName: String
+    let orderInInvocation: Int
 }
 
 struct TestPlanRunRow {

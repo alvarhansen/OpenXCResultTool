@@ -5,7 +5,7 @@ struct OpenXCRestultCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openxcrestult",
         abstract: "Read xcresult bundles without Xcode tooling.",
-        subcommands: [Get.self]
+        subcommands: [Get.self, Export.self]
     )
 }
 
@@ -101,6 +101,31 @@ struct ContentAvailabilityCommand: ParsableCommand {
         let data = try encoder.encode(availability)
         FileHandle.standardOutput.write(data)
         FileHandle.standardOutput.write(Data([0x0A]))
+    }
+}
+
+struct Export: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Export data from an xcresult bundle.",
+        subcommands: [DiagnosticsExport.self]
+    )
+}
+
+struct DiagnosticsExport: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "diagnostics",
+        abstract: "Export the diagnostics directory from a result bundle."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("output-path"), help: "Destination path for exported diagnostics.")
+    var outputPath: String
+
+    func run() throws {
+        let exporter = try DiagnosticsExporter(xcresultPath: path)
+        try exporter.export(to: outputPath)
     }
 }
 

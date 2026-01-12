@@ -264,6 +264,54 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolDiagnosticsExportParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        for fixtureURL in fixtures {
+            let baseURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+            let expectedURL = baseURL.appendingPathComponent("expected")
+            let actualURL = baseURL.appendingPathComponent("actual")
+
+            try FileManager.default.createDirectory(at: expectedURL, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: actualURL, withIntermediateDirectories: true)
+            defer {
+                try? FileManager.default.removeItem(at: baseURL)
+            }
+
+            try xcresulttoolExportDiagnostics(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                outputURL: expectedURL
+            )
+            try openXcresultExportDiagnostics(
+                fixturePath: fixtureURL.path,
+                outputURL: actualURL
+            )
+
+            let expectedFiles = try collectFiles(at: expectedURL)
+            let actualFiles = try collectFiles(at: actualURL)
+
+            XCTAssertEqual(
+                Set(expectedFiles.keys),
+                Set(actualFiles.keys),
+                "Mismatch diagnostics file list for fixture \(fixtureURL.lastPathComponent)"
+            )
+
+            for (path, expectedData) in expectedFiles {
+                let actualData = actualFiles[path]
+                XCTAssertEqual(
+                    actualData,
+                    expectedData,
+                    "Mismatch diagnostics file contents for \(fixtureURL.lastPathComponent): \(path)"
+                )
+            }
+        }
+    }
+
     func testXCResultToolTestDetailsParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -763,6 +811,38 @@ final class OpenXCRestultTests: XCTestCase {
         return output
     }
 
+    private func xcresulttoolExportDiagnostics(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        outputURL: URL
+    ) throws {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "export",
+            "diagnostics",
+            "--path",
+            fixtureURL.path,
+            "--output-path",
+            outputURL.path
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool export diagnostics failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+    }
+
     private func xcresulttoolObjectJSON(
         xcrunURL: URL,
         fixtureURL: URL,
@@ -857,6 +937,14 @@ final class OpenXCRestultTests: XCTestCase {
         return try encode(builder.contentAvailability())
     }
 
+    private func openXcresultExportDiagnostics(
+        fixturePath: String,
+        outputURL: URL
+    ) throws {
+        let exporter = try DiagnosticsExporter(xcresultPath: fixturePath)
+        try exporter.export(to: outputURL.path)
+    }
+
     private func openXcresultObjectOutput(
         fixturePath: String,
         id: String?
@@ -914,6 +1002,26 @@ final class OpenXCRestultTests: XCTestCase {
         }
 
         return nil
+    }
+
+    private func collectFiles(at root: URL) throws -> [String: Data] {
+        var files: [String: Data] = [:]
+        let rootURL = root.resolvingSymlinksInPath()
+        let rootPath = rootURL.path
+        guard let enumerator = FileManager.default.enumerator(at: rootURL, includingPropertiesForKeys: [.isRegularFileKey]) else {
+            return files
+        }
+        for case let url as URL in enumerator {
+            let fileURL = url.resolvingSymlinksInPath()
+            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+            guard values.isRegularFile == true else { continue }
+            let path = fileURL.path
+            let relative = path.hasPrefix(rootPath + "/")
+                ? String(path.dropFirst(rootPath.count + 1))
+                : path
+            files[relative] = try Data(contentsOf: fileURL)
+        }
+        return files
     }
 }
 
