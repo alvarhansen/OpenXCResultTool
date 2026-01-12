@@ -107,7 +107,7 @@ struct ContentAvailabilityCommand: ParsableCommand {
 struct Export: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Export data from an xcresult bundle.",
-        subcommands: [DiagnosticsExport.self, AttachmentsExport.self, MetricsExport.self]
+        subcommands: [DiagnosticsExport.self, AttachmentsExport.self, MetricsExport.self, ObjectExport.self]
     )
 }
 
@@ -171,6 +171,45 @@ struct MetricsExport: ParsableCommand {
     func run() throws {
         let exporter = try MetricsExporter(xcresultPath: path)
         try exporter.export(to: outputPath, testId: testId)
+    }
+}
+
+struct ObjectExport: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "object",
+        abstract: "Export a file or directory represented by an object id."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("output-path"), help: "Destination path for the exported object.")
+    var outputPath: String
+
+    @Option(name: .customLong("id"), help: "Object identifier.")
+    var id: String
+
+    @Option(name: .customLong("type"), help: "Export type (file or directory).")
+    var type: ExportObjectType
+
+    @Flag(name: .customLong("legacy"), help: "Use legacy xcresulttool output behavior.")
+    var legacy = false
+
+    func run() throws {
+        guard legacy else {
+            throw ValidationError("Legacy format is required for object export.")
+        }
+        let exporter = try ObjectExporter(xcresultPath: path)
+        try exporter.export(id: id, type: type.toExportKind(), to: outputPath)
+    }
+}
+
+enum ExportObjectType: String, ExpressibleByArgument {
+    case file
+    case directory
+
+    func toExportKind() -> ObjectExportKind {
+        ObjectExportKind(rawValue: rawValue) ?? .file
     }
 }
 

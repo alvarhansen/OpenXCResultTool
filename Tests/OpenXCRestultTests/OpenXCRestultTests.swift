@@ -312,6 +312,37 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolExportObjectParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        var selectedFixture: URL?
+        var objectId: String?
+        for fixtureURL in fixtures {
+            if let diagnosticsId = try diagnosticsDirectoryId(fixtureURL: fixtureURL) {
+                selectedFixture = fixtureURL
+                objectId = diagnosticsId
+                break
+            }
+        }
+
+        guard let fixtureURL = selectedFixture, let objectId else {
+            throw XCTSkip("No diagnostics directory available for export object parity.")
+        }
+
+        do {
+            try assertObjectExportParity(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                objectId: objectId
+            )
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool export object failed: \(error.message)")
+        }
+    }
+
     func testXCResultToolAttachmentsExportParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -1050,6 +1081,44 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    private func xcresulttoolExportObject(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        outputURL: URL,
+        objectId: String
+    ) throws {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "export",
+            "object",
+            "--legacy",
+            "--type",
+            "directory",
+            "--path",
+            fixtureURL.path,
+            "--output-path",
+            outputURL.path,
+            "--id",
+            objectId
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool export object failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+    }
+
     private func xcresulttoolMetadataJSON(
         xcrunURL: URL,
         fixtureURL: URL
@@ -1242,6 +1311,15 @@ final class OpenXCRestultTests: XCTestCase {
         try exporter.export(to: outputURL.path, testId: testId)
     }
 
+    private func openXcresultExportObject(
+        fixturePath: String,
+        outputURL: URL,
+        objectId: String
+    ) throws {
+        let exporter = try ObjectExporter(xcresultPath: fixturePath)
+        try exporter.export(id: objectId, type: .directory, to: outputURL.path)
+    }
+
     private func openXcresultMetadataOutput(
         fixturePath: String
     ) throws -> Data {
@@ -1322,6 +1400,18 @@ final class OpenXCRestultTests: XCTestCase {
         return nil
     }
 
+    private func diagnosticsDirectoryId(fixtureURL: URL) throws -> String? {
+        let store = try XCResultFileBackedStore(xcresultPath: fixtureURL.path)
+        let root = try store.loadObject(id: store.rootId)
+        let actions = root.value(for: "actions")?.arrayValues ?? []
+        guard let action = actions.first else { return nil }
+        return action
+            .value(for: "actionResult")?
+            .value(for: "diagnosticsRef")?
+            .value(for: "id")?
+            .stringValue
+    }
+
     private func collectFiles(at root: URL) throws -> [String: Data] {
         var files: [String: Data] = [:]
         let rootURL = root.resolvingSymlinksInPath()
@@ -1340,6 +1430,53 @@ final class OpenXCRestultTests: XCTestCase {
             files[relative] = try Data(contentsOf: fileURL)
         }
         return files
+    }
+
+    private func assertObjectExportParity(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        objectId: String
+    ) throws {
+        let baseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        let expectedURL = baseURL.appendingPathComponent("expected")
+        let actualURL = baseURL.appendingPathComponent("actual")
+
+        try FileManager.default.createDirectory(at: expectedURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: actualURL, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: baseURL)
+        }
+
+        try xcresulttoolExportObject(
+            xcrunURL: xcrunURL,
+            fixtureURL: fixtureURL,
+            outputURL: expectedURL,
+            objectId: objectId
+        )
+        try openXcresultExportObject(
+            fixturePath: fixtureURL.path,
+            outputURL: actualURL,
+            objectId: objectId
+        )
+
+        let expectedFiles = try collectFiles(at: expectedURL)
+        let actualFiles = try collectFiles(at: actualURL)
+
+        XCTAssertEqual(
+            Set(expectedFiles.keys),
+            Set(actualFiles.keys),
+            "Mismatch export object file list for fixture \(fixtureURL.lastPathComponent)"
+        )
+
+        for (path, expectedData) in expectedFiles {
+            let actualData = actualFiles[path]
+            XCTAssertEqual(
+                actualData,
+                expectedData,
+                "Mismatch export object file contents for \(fixtureURL.lastPathComponent): \(path)"
+            )
+        }
     }
 
     private func assertAttachmentsExportParity(

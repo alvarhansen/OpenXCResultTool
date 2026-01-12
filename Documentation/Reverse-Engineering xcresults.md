@@ -103,6 +103,7 @@ CLI quick reference
 	•	openxcrestult export diagnostics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Diagnostics
 	•	openxcrestult export attachments --path Tests/Fixtures/<bundle>.xcresult --output-path ./Attachments
 	•	openxcrestult export metrics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Metrics
+	•	openxcrestult export object --legacy --path Tests/Fixtures/<bundle>.xcresult --output-path ./Object --type directory --id "<ObjectId>"
 	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
 	•	openxcrestult metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
 
@@ -116,15 +117,13 @@ xcresulttool parity map
 		export diagnostics
 		export attachments
 		export metrics
+		export object
 		metadata get
 		metadata addExternalLocation
 	•	Not yet implemented:
-		export object
 		formatDescription get
 		formatDescription diff
 		merge
-		metadata get
-		metadata addExternalLocation
 		version
 		graph
 		compare
