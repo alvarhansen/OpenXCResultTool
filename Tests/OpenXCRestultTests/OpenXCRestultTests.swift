@@ -362,96 +362,59 @@ final class OpenXCRestultTests: XCTestCase {
         let outputURL = try mergeFixtures(fixtureNames)
         defer { try? FileManager.default.removeItem(at: outputURL) }
 
-        let commands: [XCResulttoolCommand] = [.summary, .tests, .insights, .metrics]
+        let detailTestIds = [
+            "RandomStuffTests/testExpectedFailure()",
+            "RandomStuffTests/testSkippedTest()",
+        ]
         do {
-            for command in commands {
-                let expected = try xcresulttoolJSON(
-                    xcrunURL: xcrunURL,
-                    fixtureURL: outputURL,
-                    command: command
-                )
-                let actual = try openXcresultOutput(
-                    fixturePath: outputURL.path,
-                    command: command
-                )
-
-                let normalizedActual = try normalizedParityJSON(actual, command: command)
-                let normalizedExpected = try normalizedParityJSON(expected, command: command)
-
-                XCTAssertEqual(
-                    normalizedActual,
-                    normalizedExpected,
-                    "Mismatch for merged bundle (\(command.rawValue))"
-                )
-            }
-
-            let expectedBuild = try xcresulttoolBuildResultsJSON(
+            try assertXCResultToolParity(
                 xcrunURL: xcrunURL,
-                fixtureURL: outputURL
+                fixtureURL: outputURL,
+                label: "merged bundle",
+                detailTestIds: detailTestIds
             )
-            let actualBuild = try openXcresultBuildResultsOutput(
-                fixturePath: outputURL.path
-            )
-            XCTAssertEqual(
-                try normalizedJSON(actualBuild),
-                try normalizedJSON(expectedBuild),
-                "Mismatch for merged bundle (build-results)"
-            )
-
-            let expectedAvailability = try xcresulttoolContentAvailabilityJSON(
-                xcrunURL: xcrunURL,
-                fixtureURL: outputURL
-            )
-            let actualAvailability = try openXcresultContentAvailabilityOutput(
-                fixturePath: outputURL.path
-            )
-            XCTAssertEqual(
-                try normalizedJSON(actualAvailability),
-                try normalizedJSON(expectedAvailability),
-                "Mismatch for merged bundle (content-availability)"
-            )
-
-            let detailTestIds = [
-                "RandomStuffTests/testExpectedFailure()",
-                "RandomStuffTests/testSkippedTest()",
-            ]
-            for testId in detailTestIds {
-                let expectedDetails = try xcresulttoolJSON(
-                    xcrunURL: xcrunURL,
-                    fixtureURL: outputURL,
-                    command: .testDetails,
-                    testId: testId
-                )
-                let actualDetails = try openXcresultOutput(
-                    fixturePath: outputURL.path,
-                    command: .testDetails,
-                    testId: testId
-                )
-                XCTAssertEqual(
-                    try normalizedParityJSON(actualDetails, command: .testDetails),
-                    try normalizedParityJSON(expectedDetails, command: .testDetails),
-                    "Mismatch for merged bundle (test-details \(testId))"
-                )
-
-                let expectedActivities = try xcresulttoolJSON(
-                    xcrunURL: xcrunURL,
-                    fixtureURL: outputURL,
-                    command: .activities,
-                    testId: testId
-                )
-                let actualActivities = try openXcresultOutput(
-                    fixturePath: outputURL.path,
-                    command: .activities,
-                    testId: testId
-                )
-                XCTAssertEqual(
-                    try normalizedParityJSON(actualActivities, command: .activities),
-                    try normalizedParityJSON(expectedActivities, command: .activities),
-                    "Mismatch for merged bundle (activities \(testId))"
-                )
-            }
         } catch let error as ProcessFailure {
             throw XCTSkip("xcresulttool failed for merged bundle: \(error.message)")
+        }
+    }
+
+    func testXCResultToolMergeOutputParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtureNames = [
+            "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+            "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+        ]
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
+        for fixtureURL in fixtureURLs {
+            guard FileManager.default.fileExists(atPath: fixtureURL.path) else {
+                throw XCTSkip("Fixture not found at \(fixtureURL.path)")
+            }
+        }
+
+        let outputURL = try xcresulttoolMerge(xcrunURL: xcrunURL, fixtureURLs: fixtureURLs)
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        let outputDB = outputURL.appendingPathComponent("database.sqlite3")
+        guard FileManager.default.fileExists(atPath: outputDB.path) else {
+            throw XCTSkip("xcresulttool merge output missing database.sqlite3; OpenXCRestult requires it.")
+        }
+
+        let detailTestIds = [
+            "RandomStuffTests/testExpectedFailure()",
+            "RandomStuffTests/testSkippedTest()",
+        ]
+        do {
+            try assertXCResultToolParity(
+                xcrunURL: xcrunURL,
+                fixtureURL: outputURL,
+                label: "xcresulttool merge bundle",
+                detailTestIds: detailTestIds
+            )
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool failed for xcresulttool merge bundle: \(error.message)")
         }
     }
 
@@ -1425,6 +1388,97 @@ final class OpenXCRestultTests: XCTestCase {
         return URL(fileURLWithPath: path)
     }
 
+    private func assertXCResultToolParity(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        label: String,
+        detailTestIds: [String]
+    ) throws {
+        let commands: [XCResulttoolCommand] = [.summary, .tests, .insights, .metrics]
+        for command in commands {
+            let expected = try xcresulttoolJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                command: command
+            )
+            let actual = try openXcresultOutput(
+                fixturePath: fixtureURL.path,
+                command: command
+            )
+
+            let normalizedActual = try normalizedParityJSON(actual, command: command)
+            let normalizedExpected = try normalizedParityJSON(expected, command: command)
+
+            XCTAssertEqual(
+                normalizedActual,
+                normalizedExpected,
+                "Mismatch for \(label) (\(command.rawValue))"
+            )
+        }
+
+        let expectedBuild = try xcresulttoolBuildResultsJSON(
+            xcrunURL: xcrunURL,
+            fixtureURL: fixtureURL
+        )
+        let actualBuild = try openXcresultBuildResultsOutput(
+            fixturePath: fixtureURL.path
+        )
+        XCTAssertEqual(
+            try normalizedJSON(actualBuild),
+            try normalizedJSON(expectedBuild),
+            "Mismatch for \(label) (build-results)"
+        )
+
+        let expectedAvailability = try xcresulttoolContentAvailabilityJSON(
+            xcrunURL: xcrunURL,
+            fixtureURL: fixtureURL
+        )
+        let actualAvailability = try openXcresultContentAvailabilityOutput(
+            fixturePath: fixtureURL.path
+        )
+        XCTAssertEqual(
+            try normalizedJSON(actualAvailability),
+            try normalizedJSON(expectedAvailability),
+            "Mismatch for \(label) (content-availability)"
+        )
+
+        for testId in detailTestIds {
+            let expectedDetails = try xcresulttoolJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                command: .testDetails,
+                testId: testId
+            )
+            let actualDetails = try openXcresultOutput(
+                fixturePath: fixtureURL.path,
+                command: .testDetails,
+                testId: testId
+            )
+            XCTAssertEqual(
+                try normalizedParityJSON(actualDetails, command: .testDetails),
+                try normalizedParityJSON(expectedDetails, command: .testDetails),
+                "Mismatch for \(label) (test-details \(testId))"
+            )
+
+            let expectedActivities = try xcresulttoolJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                command: .activities,
+                testId: testId
+            )
+            let actualActivities = try openXcresultOutput(
+                fixturePath: fixtureURL.path,
+                command: .activities,
+                testId: testId
+            )
+            XCTAssertEqual(
+                try normalizedParityJSON(actualActivities, command: .activities),
+                try normalizedParityJSON(expectedActivities, command: .activities),
+                "Mismatch for \(label) (activities \(testId))"
+            )
+        }
+    }
+
     private func xcresulttoolJSON(
         xcrunURL: URL,
         fixtureURL: URL,
@@ -1463,6 +1517,36 @@ final class OpenXCRestultTests: XCTestCase {
         }
 
         return output
+    }
+
+    private func xcresulttoolMerge(
+        xcrunURL: URL,
+        fixtureURLs: [URL]
+    ) throws -> URL {
+        let outputURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("xcresulttool-merged-\(UUID().uuidString).xcresult")
+
+        let process = Process()
+        process.executableURL = xcrunURL
+        var arguments = ["xcresulttool", "merge", "--output-path", outputURL.path]
+        arguments.append(contentsOf: fixtureURLs.map(\.path))
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool merge failed: \(error)")
+        }
+
+        return outputURL
     }
 
     private func xcresulttoolLogJSON(
