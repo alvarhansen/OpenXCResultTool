@@ -238,6 +238,32 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolContentAvailabilityParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        for fixtureURL in fixtures {
+            let expected = try xcresulttoolContentAvailabilityJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL
+            )
+            let actual = try openXcresultContentAvailabilityOutput(
+                fixturePath: fixtureURL.path
+            )
+
+            let normalizedActual = try normalizedJSON(actual)
+            let normalizedExpected = try normalizedJSON(expected)
+
+            XCTAssertEqual(
+                normalizedActual,
+                normalizedExpected,
+                "Mismatch for fixture \(fixtureURL.lastPathComponent) (content-availability)"
+            )
+        }
+    }
+
     func testXCResultToolTestDetailsParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -704,6 +730,39 @@ final class OpenXCRestultTests: XCTestCase {
         return output
     }
 
+    private func xcresulttoolContentAvailabilityJSON(
+        xcrunURL: URL,
+        fixtureURL: URL
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "get",
+            "content-availability",
+            "--path",
+            fixtureURL.path,
+            "--format",
+            "json"
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool content-availability failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+
+        return output
+    }
+
     private func xcresulttoolObjectJSON(
         xcrunURL: URL,
         fixtureURL: URL,
@@ -789,6 +848,13 @@ final class OpenXCRestultTests: XCTestCase {
     ) throws -> Data {
         let builder = try BuildResultsBuilder(xcresultPath: fixturePath)
         return try encode(builder.buildResults())
+    }
+
+    private func openXcresultContentAvailabilityOutput(
+        fixturePath: String
+    ) throws -> Data {
+        let builder = try ContentAvailabilityBuilder(xcresultPath: fixturePath)
+        return try encode(builder.contentAvailability())
     }
 
     private func openXcresultObjectOutput(
