@@ -296,6 +296,63 @@ final class OpenXCRestultTests: XCTestCase {
         )
     }
 
+    func testMergeSelectedForeignKeys() throws {
+        let fixtureNames = [
+            "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+            "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+        ]
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
+        let outputURL = try mergeFixtures(fixtureNames)
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        let checks: [ForeignKeyCheck] = [
+            ForeignKeyCheck(table: "TestCaseRuns", column: "testCase_fk", referencedTable: "TestCases"),
+            ForeignKeyCheck(table: "TestCaseRuns", column: "testSuiteRun_fk", referencedTable: "TestSuiteRuns"),
+            ForeignKeyCheck(table: "TestSuiteRuns", column: "testableRun_fk", referencedTable: "TestableRuns"),
+            ForeignKeyCheck(table: "TestPlanRuns", column: "action_fk", referencedTable: "Actions"),
+            ForeignKeyCheck(table: "TestPlanRuns", column: "testPlan_fk", referencedTable: "TestPlans"),
+            ForeignKeyCheck(table: "PerformanceMetrics", column: "testCaseRun_fk", referencedTable: "TestCaseRuns"),
+            ForeignKeyCheck(table: "BuildIssues", column: "action_fk", referencedTable: "Actions"),
+        ]
+
+        let outputDB = outputURL.appendingPathComponent("database.sqlite3")
+        for check in checks {
+            var expectedMissing: Int64 = 0
+            for fixtureURL in fixtureURLs {
+                expectedMissing += try missingReferenceCount(
+                    in: fixtureURL.appendingPathComponent("database.sqlite3"),
+                    check: check
+                )
+            }
+            let actualMissing = try missingReferenceCount(in: outputDB, check: check)
+            XCTAssertEqual(
+                actualMissing,
+                expectedMissing,
+                "Mismatch missing references for \(check.table).\(check.column) -> \(check.referencedTable)"
+            )
+        }
+    }
+
+    func testMergeTableSetMatchesInputs() throws {
+        let fixtureNames = [
+            "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+            "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+        ]
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
+        let outputURL = try mergeFixtures(fixtureNames)
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        var expectedTables = Set<String>()
+        for fixtureURL in fixtureURLs {
+            let dbURL = fixtureURL.appendingPathComponent("database.sqlite3")
+            expectedTables.formUnion(try tableNames(in: dbURL))
+        }
+
+        let outputDB = outputURL.appendingPathComponent("database.sqlite3")
+        let mergedTables = Set(try tableNames(in: outputDB))
+        XCTAssertEqual(mergedTables, expectedTables, "Mismatch merged table set")
+    }
+
     func testXCResultToolContentAvailabilityParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -973,6 +1030,25 @@ final class OpenXCRestultTests: XCTestCase {
         let referenceColumn: String
     }
 
+    private struct ForeignKeyCheck {
+        let table: String
+        let column: String
+        let referencedTable: String
+        let referencedColumn: String
+
+        init(
+            table: String,
+            column: String,
+            referencedTable: String,
+            referencedColumn: String = "rowid"
+        ) {
+            self.table = table
+            self.column = column
+            self.referencedTable = referencedTable
+            self.referencedColumn = referencedColumn
+        }
+    }
+
     private func foreignKeyDefinitions(in databaseURL: URL, table: String) throws -> [ForeignKeyDefinition] {
         let database = try SQLiteDatabase(path: databaseURL.path)
         let foreignKeys = try database.query("PRAGMA foreign_key_list(\"\(table)\");") { statement in
@@ -1011,6 +1087,22 @@ final class OpenXCRestultTests: XCTestCase {
             }
         }
         return missing
+    }
+
+    private func missingReferenceCount(in databaseURL: URL, check: ForeignKeyCheck) throws -> Int64 {
+        let database = try SQLiteDatabase(path: databaseURL.path)
+        let sql = """
+        SELECT COUNT(*)
+        FROM "\(check.table)"
+        WHERE "\(check.column)" IS NOT NULL
+          AND "\(check.column)" NOT IN (
+            SELECT "\(check.referencedColumn)" FROM "\(check.referencedTable)"
+          );
+        """
+        let count = try database.queryOne(sql) { statement in
+            SQLiteDatabase.int(statement, 0) ?? 0
+        } ?? 0
+        return Int64(count)
     }
 
     private func dataFileNames(in bundleURL: URL) throws -> Set<String> {
