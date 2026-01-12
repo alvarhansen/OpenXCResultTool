@@ -186,7 +186,7 @@ struct XCResultDateParser {
             if value.range(of: "e", options: .caseInsensitive) != nil {
                 return Double(value) ?? 0
             }
-            return NSDecimalNumber(string: value)
+            return Decimal(string: value) ?? 0
         case "Int", "Integer":
             return Int(value) ?? 0
         case "UInt8", "UInt16", "UInt32", "UInt64":
