@@ -25,19 +25,18 @@ struct XCResultRawParser {
         var fields: [String: XCResultRawValue] = [:]
         var elements: [XCResultRawValue] = []
 
-        var sawTypeMarker = false
+        var sawTypedContainer = false
         if peek() == UInt8(ascii: "T") {
             index += 1
-            sawTypeMarker = true
+            sawTypedContainer = true
             skipWhitespace()
         }
         if peek() == UInt8(ascii: "S") {
             typeName = try parseToken(expected: UInt8(ascii: "S"))
-            sawTypeMarker = true
             skipWhitespace()
         }
 
-        if sawTypeMarker && peek() == UInt8(ascii: "[") {
+        if sawTypedContainer && peek() == UInt8(ascii: "[") {
             let metadata = try parseContainer()
             if let name = metadata.fields["_n"]?.stringValue {
                 typeName = name

@@ -92,6 +92,12 @@ struct XCResultRawValue {
             }
         }
 
+        if typeName == "DocumentLocation" || typeName == "DVTTextDocumentLocation" {
+            if dict["url"] == nil {
+                dict["url"] = ""
+            }
+        }
+
         if typeName == "ActivityLogSectionAttachment" {
             if let value = dict.removeValue(forKey: "identifier") {
                 dict["uniformTypeIdentifier"] = value
@@ -115,6 +121,31 @@ struct XCResultRawValue {
             ]
         }
 
+        if typeName == "ActivityLogUnitTestSection" {
+            let testDetailKeys = [
+                "emittedOutput",
+                "suiteName",
+                "summary",
+                "testName",
+                "testsPassedString",
+                "runnablePath",
+                "runnableUTI",
+                "wasSkipped"
+            ]
+            var testDetails = dict["testDetails"] as? [String: Any] ?? [:]
+            for key in testDetailKeys {
+                if let value = dict.removeValue(forKey: key) {
+                    testDetails[key] = value
+                }
+            }
+            if testDetails["wasSkipped"] == nil {
+                testDetails["wasSkipped"] = false
+            }
+            if !testDetails.isEmpty {
+                dict["testDetails"] = testDetails
+            }
+        }
+
         if typeName == "ActivityLogSection" || (typeName.hasSuffix("Section") && typeName != "ActivityLogSectionAttachment") {
             if dict["attachments"] == nil {
                 dict["attachments"] = []
@@ -124,6 +155,9 @@ struct XCResultRawValue {
             }
             if dict["subsections"] == nil {
                 dict["subsections"] = []
+            }
+            if dict["duration"] == nil {
+                dict["duration"] = 0
             }
         }
     }
@@ -149,7 +183,10 @@ struct XCResultDateParser {
     func convertScalar(_ value: String, typeName: String?) -> Any {
         switch typeName {
         case "Double":
-            return Double(value) ?? 0
+            if value.range(of: "e", options: .caseInsensitive) != nil {
+                return Double(value) ?? 0
+            }
+            return NSDecimalNumber(string: value)
         case "Int", "Integer":
             return Int(value) ?? 0
         case "UInt8", "UInt16", "UInt32", "UInt64":
