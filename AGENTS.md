@@ -7,6 +7,7 @@ This repository is a minimal Swift Package Manager (SPM) project with a single e
 - `swift build` compiles the executable target using the Swift toolchain declared in `Package.swift` (swift-tools-version 6.2).
 - `swift run` builds (if needed) and runs the `OpenXCRestult` executable.
 - `swift test` runs the XCTest suite in `Tests/OpenXCRestultTests/`.
+- `swift run OpenXCRestult get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id <objectId> --format json` prints a legacy object payload for debugging or reverse‑engineering.
 
 ## Coding Style & Naming Conventions
 Keep indentation at 4 spaces, matching the existing source file. Follow Swift API Design Guidelines: use UpperCamelCase for types (`OpenXCRestult`), lowerCamelCase for functions and variables, and keep filenames aligned with their primary type. There is no formatter configured in the repo; if you introduce one, update this guide and the build instructions. Keep the entry point in a small `@main` type and move non-trivial logic into separate files for readability.
