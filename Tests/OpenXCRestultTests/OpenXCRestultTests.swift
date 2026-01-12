@@ -478,6 +478,39 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolCompareParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let baselineURL = fixturesDirectory()
+            .appendingPathComponent("Test-RandomStuff-2026.01.11_12-36-33-+0200.xcresult")
+        let currentURL = fixturesDirectory()
+            .appendingPathComponent("Test-RandomStuff-2026.01.11_14-12-06-+0200.xcresult")
+
+        do {
+            let expected = try xcresulttoolCompareOutput(
+                xcrunURL: xcrunURL,
+                comparisonURL: currentURL,
+                baselineURL: baselineURL,
+                flags: []
+            )
+            let actual = try openXcresultCompareOutput(
+                comparisonURL: currentURL,
+                baselineURL: baselineURL,
+                flags: []
+            )
+
+            XCTAssertEqual(
+                try normalizedJSON(actual),
+                try normalizedJSON(expected),
+                "Mismatch compare output"
+            )
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool compare failed: \(error.message)")
+        }
+    }
+
     func testXCResultToolAttachmentsExportParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -1401,6 +1434,41 @@ final class OpenXCRestultTests: XCTestCase {
 
         return output
     }
+
+    private func xcresulttoolCompareOutput(
+        xcrunURL: URL,
+        comparisonURL: URL,
+        baselineURL: URL,
+        flags: [String]
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        var arguments = [
+            "xcresulttool",
+            "compare",
+            comparisonURL.path,
+            "--baseline-path",
+            baselineURL.path
+        ]
+        arguments.append(contentsOf: flags)
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool compare failed: \(error)")
+        }
+
+        return output
+    }
     private func xcresulttoolMetadataJSON(
         xcrunURL: URL,
         fixtureURL: URL
@@ -1636,6 +1704,51 @@ final class OpenXCRestultTests: XCTestCase {
             output = builder.textOutput(diff: diff)
         }
         return Data((output + "\n").utf8)
+    }
+
+    private func openXcresultCompareOutput(
+        comparisonURL: URL,
+        baselineURL: URL,
+        flags: [String]
+    ) throws -> Data {
+        let builder = try CompareBuilder(
+            baselinePath: baselineURL.path,
+            currentPath: comparisonURL.path
+        )
+        let result = try builder.compare()
+
+        var output = CompareOutput()
+        if flags.isEmpty {
+            output.summary = result.summary
+            output.testFailures = result.testFailures
+            output.testsExecuted = result.testsExecuted
+            output.buildWarnings = result.buildWarnings
+            output.analyzerIssues = result.analyzerIssues
+        } else {
+            if flags.contains("--summary") {
+                output.summary = result.summary
+            }
+            if flags.contains("--test-failures") {
+                output.testFailures = result.testFailures
+            }
+            if flags.contains("--tests") {
+                output.testsExecuted = result.testsExecuted
+            }
+            if flags.contains("--build-warnings") {
+                output.buildWarnings = result.buildWarnings
+            }
+            if flags.contains("--analyzer-issues") {
+                output.analyzerIssues = result.analyzerIssues
+            }
+        }
+
+        let encoder = JSONEncoder()
+        var formatting: JSONEncoder.OutputFormatting = [.prettyPrinted]
+        if #available(macOS 10.15, *) {
+            formatting.insert(.withoutEscapingSlashes)
+        }
+        encoder.outputFormatting = formatting
+        return try encoder.encode(output)
     }
 
     private func openXcresultMetadataOutput(

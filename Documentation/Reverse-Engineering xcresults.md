@@ -107,6 +107,7 @@ CLI quick reference
 	•	openxcrestult graph --legacy --path Tests/Fixtures/<bundle>.xcresult [--id "<ObjectId>"]
 	•	openxcrestult formatDescription get --legacy [--format json] [--hash] [--include-event-stream-types]
 	•	openxcrestult formatDescription diff --legacy [--format text | markdown] <version1.json> <version2.json>
+	•	openxcrestult compare <comparison.xcresult> --baseline-path <baseline.xcresult> [--summary] [--test-failures] [--tests] [--build-warnings] [--analyzer-issues]
 	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
 	•	openxcrestult metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
 	•	openxcrestult version
@@ -125,12 +126,12 @@ xcresulttool parity map
 		graph
 		formatDescription get
 		formatDescription diff
+		compare
 		metadata get
 		metadata addExternalLocation
 		version
 	•	Not yet implemented:
 		merge
-		compare
 
 Core commands
 	•	Dump the summary JSON (oracle):

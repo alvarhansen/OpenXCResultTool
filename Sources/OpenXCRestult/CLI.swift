@@ -5,7 +5,7 @@ struct OpenXCRestultCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openxcrestult",
         abstract: "Read xcresult bundles without Xcode tooling.",
-        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, FormatDescriptionCommand.self, VersionCommand.self]
+        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, FormatDescriptionCommand.self, CompareCommand.self, VersionCommand.self]
     )
 }
 
@@ -714,6 +714,91 @@ struct FormatDescriptionDiff: ParsableCommand {
             output = builder.textOutput(diff: diff)
         }
         FileHandle.standardOutput.write(Data((output + "\n").utf8))
+    }
+}
+
+struct CompareCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "compare",
+        abstract: "Compare result bundles."
+    )
+
+    @Flag(name: .customLong("schema"), help: "Print output as JSON Schema (unsupported).")
+    var schema = false
+
+    @Option(name: .customLong("schema-version"), help: "Schema version in major.minor.patch format (unsupported).")
+    var schemaVersion: String?
+
+    @Option(name: .customLong("baseline-path"), help: "Baseline result bundle path.")
+    var baselinePath: String
+
+    @Flag(name: .customLong("summary"), help: "Include differential summary info.")
+    var summary = false
+
+    @Flag(name: .customLong("test-failures"), help: "Include differential test failures info.")
+    var testFailures = false
+
+    @Flag(name: .customLong("tests"), help: "Include differential tests info.")
+    var tests = false
+
+    @Flag(name: .customLong("build-warnings"), help: "Include differential build warnings info.")
+    var buildWarnings = false
+
+    @Flag(name: .customLong("analyzer-issues"), help: "Include differential analyzer issues info.")
+    var analyzerIssues = false
+
+    @Argument(help: "Result bundle path(s) to compare.")
+    var comparisonPaths: [String]
+
+    func run() throws {
+        guard !schema, schemaVersion == nil else {
+            throw ValidationError("Schema output is not supported yet.")
+        }
+        guard comparisonPaths.count == 1, let comparisonPath = comparisonPaths.first else {
+            throw ValidationError("Exactly one comparison path is required.")
+        }
+
+        let builder = try CompareBuilder(
+            baselinePath: baselinePath,
+            currentPath: comparisonPath
+        )
+        let result = try builder.compare()
+
+        let anyFlag = summary || testFailures || tests || buildWarnings || analyzerIssues
+        var output = CompareOutput()
+        if anyFlag {
+            if summary {
+                output.summary = result.summary
+            }
+            if testFailures {
+                output.testFailures = result.testFailures
+            }
+            if tests {
+                output.testsExecuted = result.testsExecuted
+            }
+            if buildWarnings {
+                output.buildWarnings = result.buildWarnings
+            }
+            if analyzerIssues {
+                output.analyzerIssues = result.analyzerIssues
+            }
+        } else {
+            output.summary = result.summary
+            output.testFailures = result.testFailures
+            output.testsExecuted = result.testsExecuted
+            output.buildWarnings = result.buildWarnings
+            output.analyzerIssues = result.analyzerIssues
+        }
+
+        let encoder = JSONEncoder()
+        var formatting: JSONEncoder.OutputFormatting = [.prettyPrinted]
+        if #available(macOS 10.15, *) {
+            formatting.insert(.withoutEscapingSlashes)
+        }
+        encoder.outputFormatting = formatting
+        let data = try encoder.encode(output)
+        FileHandle.standardOutput.write(data)
+        FileHandle.standardOutput.write(Data([0x0A]))
     }
 }
 
