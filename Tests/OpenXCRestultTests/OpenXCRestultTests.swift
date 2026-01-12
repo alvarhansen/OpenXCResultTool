@@ -372,6 +372,32 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolObjectParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        for fixtureURL in fixtures {
+            let expected = try xcresulttoolObjectJSON(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL
+            )
+            let actual = try openXcresultObjectOutput(
+                fixturePath: fixtureURL.path
+            )
+
+            let normalizedActual = try normalizedJSON(actual)
+            let normalizedExpected = try normalizedJSON(expected)
+
+            XCTAssertEqual(
+                normalizedActual,
+                normalizedExpected,
+                "Mismatch for fixture \(fixtureURL.lastPathComponent) (object)"
+            )
+        }
+    }
+
     private func fixturesDirectory() -> URL {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         return root.appendingPathComponent("Tests").appendingPathComponent("Fixtures")
@@ -594,6 +620,40 @@ final class OpenXCRestultTests: XCTestCase {
         return output
     }
 
+    private func xcresulttoolObjectJSON(
+        xcrunURL: URL,
+        fixtureURL: URL
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "get",
+            "object",
+            "--legacy",
+            "--path",
+            fixtureURL.path,
+            "--format",
+            "json"
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool object failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+
+        return output
+    }
+
     private func openXcresultOutput(
         fixturePath: String,
         command: XCResulttoolCommand,
@@ -633,6 +693,15 @@ final class OpenXCRestultTests: XCTestCase {
     ) throws -> Data {
         let builder = LogBuilder(xcresultPath: fixturePath)
         return try builder.log(type: logType.toLogType(), compact: false)
+    }
+
+    private func openXcresultObjectOutput(
+        fixturePath: String
+    ) throws -> Data {
+        let store = try XCResultFileBackedStore(xcresultPath: fixturePath)
+        let rawValue = try store.loadObject(id: store.rootId)
+        let json = rawValue.toLegacyJSONValue()
+        return try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
     }
 }
 

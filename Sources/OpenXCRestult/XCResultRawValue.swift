@@ -74,7 +74,11 @@ struct XCResultRawValue {
 
         var dict: [String: Any] = [:]
         if let typeName {
-            dict["_type"] = ["_name": typeName]
+            var typeDict: [String: Any] = ["_name": typeName]
+            if let supertype = XCResultRawValue.legacySupertypes[typeName] {
+                typeDict["_supertype"] = ["_name": supertype]
+            }
+            dict["_type"] = typeDict
         }
         for (key, value) in fields where key != "_n" && key != "_v" && key != "_s" {
             dict[key] = value.toLegacyJSONValue()
@@ -84,6 +88,25 @@ struct XCResultRawValue {
         }
         return dict
     }
+
+    private static let legacySupertypes: [String: String] = [
+        "ActionTestMetadata": "ActionTestSummaryIdentifiableObject",
+        "ActionTestPlanRunSummary": "ActionAbstractTestSummary",
+        "ActionTestSummary": "ActionTestSummaryIdentifiableObject",
+        "ActionTestSummaryGroup": "ActionTestSummaryIdentifiableObject",
+        "ActionTestSummaryIdentifiableObject": "ActionAbstractTestSummary",
+        "ActionTestableSummary": "ActionAbstractTestSummary",
+        "ActivityLogAnalyzerControlFlowStep": "ActivityLogAnalyzerStep",
+        "ActivityLogAnalyzerEventStep": "ActivityLogAnalyzerStep",
+        "ActivityLogAnalyzerResultMessage": "ActivityLogMessage",
+        "ActivityLogAnalyzerWarningMessage": "ActivityLogMessage",
+        "ActivityLogCommandInvocationSection": "ActivityLogSection",
+        "ActivityLogMajorSection": "ActivityLogSection",
+        "ActivityLogTargetBuildSection": "ActivityLogMajorSection",
+        "ActivityLogUnitTestSection": "ActivityLogSection",
+        "TestFailureIssueSummary": "IssueSummary",
+        "TestIssueSummary": "IssueSummary"
+    ]
 
     func toLogJSONValue(dateParser: XCResultDateParser) -> Any {
         if typeName == "Array" {
