@@ -107,7 +107,7 @@ struct ContentAvailabilityCommand: ParsableCommand {
 struct Export: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Export data from an xcresult bundle.",
-        subcommands: [DiagnosticsExport.self, AttachmentsExport.self]
+        subcommands: [DiagnosticsExport.self, AttachmentsExport.self, MetricsExport.self]
     )
 }
 
@@ -150,6 +150,27 @@ struct AttachmentsExport: ParsableCommand {
     func run() throws {
         let exporter = try AttachmentsExporter(xcresultPath: path)
         try exporter.export(to: outputPath, testId: testId, onlyFailures: onlyFailures)
+    }
+}
+
+struct MetricsExport: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "metrics",
+        abstract: "Export CSV file with performance measurements for a given test."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("output-path"), help: "Destination path for exported metrics.")
+    var outputPath: String
+
+    @Option(name: .customLong("test-id"), help: "Optional test identifier to filter metrics.")
+    var testId: String?
+
+    func run() throws {
+        let exporter = try MetricsExporter(xcresultPath: path)
+        try exporter.export(to: outputPath, testId: testId)
     }
 }
 

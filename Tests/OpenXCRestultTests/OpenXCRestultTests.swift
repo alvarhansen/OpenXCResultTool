@@ -337,6 +337,29 @@ final class OpenXCRestultTests: XCTestCase {
         )
     }
 
+    func testXCResultToolMetricsExportParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        for fixtureURL in fixtures {
+            try assertMetricsExportParity(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                testId: nil
+            )
+        }
+
+        let filteredFixture = fixturesDirectory()
+            .appendingPathComponent("Test-RandomStuff-2026.01.11_12-36-33-+0200.xcresult")
+        try assertMetricsExportParity(
+            xcrunURL: xcrunURL,
+            fixtureURL: filteredFixture,
+            testId: "RandomStuffUITests/testLaunchPerformance()"
+        )
+    }
+
     func testXCResultToolTestDetailsParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -909,6 +932,43 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    private func xcresulttoolExportMetrics(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        outputURL: URL,
+        testId: String?
+    ) throws {
+        let process = Process()
+        process.executableURL = xcrunURL
+        var arguments = [
+            "xcresulttool",
+            "export",
+            "metrics",
+            "--path",
+            fixtureURL.path,
+            "--output-path",
+            outputURL.path
+        ]
+        if let testId {
+            arguments.append(contentsOf: ["--test-id", testId])
+        }
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool export metrics failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+    }
+
     private func xcresulttoolObjectJSON(
         xcrunURL: URL,
         fixtureURL: URL,
@@ -1019,6 +1079,15 @@ final class OpenXCRestultTests: XCTestCase {
     ) throws {
         let exporter = try AttachmentsExporter(xcresultPath: fixturePath)
         try exporter.export(to: outputURL.path, testId: testId, onlyFailures: onlyFailures)
+    }
+
+    private func openXcresultExportMetrics(
+        fixturePath: String,
+        outputURL: URL,
+        testId: String?
+    ) throws {
+        let exporter = try MetricsExporter(xcresultPath: fixturePath)
+        try exporter.export(to: outputURL.path, testId: testId)
     }
 
     private func openXcresultObjectOutput(
@@ -1164,6 +1233,98 @@ final class OpenXCRestultTests: XCTestCase {
             )
         }
     }
+
+    private func assertMetricsExportParity(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        testId: String?
+    ) throws {
+        let baseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        let expectedURL = baseURL.appendingPathComponent("expected")
+        let actualURL = baseURL.appendingPathComponent("actual")
+
+        try FileManager.default.createDirectory(at: expectedURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: actualURL, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: baseURL)
+        }
+
+        try xcresulttoolExportMetrics(
+            xcrunURL: xcrunURL,
+            fixtureURL: fixtureURL,
+            outputURL: expectedURL,
+            testId: testId
+        )
+        try openXcresultExportMetrics(
+            fixturePath: fixtureURL.path,
+            outputURL: actualURL,
+            testId: testId
+        )
+
+        let expectedManifest = try loadMetricsManifest(at: expectedURL)
+        let actualManifest = try loadMetricsManifest(at: actualURL)
+
+        let expectedKeys = expectedManifest.map { MetricsManifestKey(identifier: $0.testIdentifier, url: $0.testIdentifierURL) }
+        let actualKeys = actualManifest.map { MetricsManifestKey(identifier: $0.testIdentifier, url: $0.testIdentifierURL) }
+        XCTAssertEqual(
+            expectedKeys.sorted(),
+            actualKeys.sorted(),
+            "Mismatch metrics manifest entries for fixture \(fixtureURL.lastPathComponent)"
+        )
+
+        let expectedFiles = try loadMetricsFiles(from: expectedURL, manifest: expectedManifest)
+        let actualFiles = try loadMetricsFiles(from: actualURL, manifest: actualManifest)
+
+        XCTAssertEqual(
+            Set(expectedFiles.keys),
+            Set(actualFiles.keys),
+            "Mismatch metrics file list for fixture \(fixtureURL.lastPathComponent)"
+        )
+
+        for (key, expectedData) in expectedFiles {
+            let actualData = actualFiles[key]
+            XCTAssertEqual(
+                actualData,
+                expectedData,
+                "Mismatch metrics contents for \(fixtureURL.lastPathComponent): \(key.identifier)"
+            )
+        }
+    }
+
+    private func loadMetricsManifest(at outputURL: URL) throws -> [MetricsManifestEntry] {
+        let manifestURL = outputURL.appendingPathComponent("manifest.json")
+        let data = try Data(contentsOf: manifestURL)
+        return try JSONDecoder().decode([MetricsManifestEntry].self, from: data)
+    }
+
+    private func loadMetricsFiles(
+        from outputURL: URL,
+        manifest: [MetricsManifestEntry]
+    ) throws -> [MetricsManifestKey: Data] {
+        var results: [MetricsManifestKey: Data] = [:]
+        for entry in manifest {
+            let key = MetricsManifestKey(identifier: entry.testIdentifier, url: entry.testIdentifierURL)
+            let fileURL = resolveMetricsFileURL(baseURL: outputURL, fileName: entry.metricsFileName)
+            results[key] = try Data(contentsOf: fileURL)
+        }
+        return results
+    }
+
+    private func resolveMetricsFileURL(baseURL: URL, fileName: String) -> URL {
+        let candidate = baseURL.appendingPathComponent(fileName)
+        if FileManager.default.fileExists(atPath: candidate.path) {
+            return candidate
+        }
+        if fileName.hasSuffix(".csv") {
+            let trimmed = String(fileName.dropLast(4))
+            let trimmedURL = baseURL.appendingPathComponent(trimmed)
+            if FileManager.default.fileExists(atPath: trimmedURL.path) {
+                return trimmedURL
+            }
+        }
+        return candidate
+    }
 }
 
 private enum XCResulttoolCommand: String {
@@ -1218,4 +1379,22 @@ private struct MetricsTestIdSnapshot {
     let fixtureName: String
     let testId: String
     let snapshotSuffix: String
+}
+
+private struct MetricsManifestEntry: Decodable {
+    let metricsFileName: String
+    let testIdentifier: String
+    let testIdentifierURL: String
+}
+
+private struct MetricsManifestKey: Hashable, Comparable {
+    let identifier: String
+    let url: String
+
+    static func < (lhs: MetricsManifestKey, rhs: MetricsManifestKey) -> Bool {
+        if lhs.identifier == rhs.identifier {
+            return lhs.url < rhs.url
+        }
+        return lhs.identifier < rhs.identifier
+    }
 }
