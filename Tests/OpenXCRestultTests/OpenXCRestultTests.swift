@@ -243,28 +243,14 @@ final class OpenXCRestultTests: XCTestCase {
             "Test-RandomStuff-2026.01.11_12-36-33-+0200",
             "Test-RandomStuff-2026.01.11_14-12-06-+0200",
         ]
-        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
-
-        for fixtureURL in fixtureURLs {
-            guard FileManager.default.fileExists(atPath: fixtureURL.path) else {
-                throw XCTSkip("Fixture not found at \(fixtureURL.path)")
-            }
-        }
-
-        let outputURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("merged-\(UUID().uuidString).xcresult")
+        let outputURL = try mergeFixtures(fixtureNames)
         defer { try? FileManager.default.removeItem(at: outputURL) }
-
-        let builder = MergeBuilder(
-            inputPaths: fixtureURLs.map { $0.path },
-            outputPath: outputURL.path
-        )
-        try builder.merge()
 
         let outputDB = outputURL.appendingPathComponent("database.sqlite3")
         XCTAssertTrue(FileManager.default.fileExists(atPath: outputDB.path))
 
         let tables = try tableNames(in: outputDB)
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
         for table in tables {
             var expectedCount: Int64 = 0
             for fixtureURL in fixtureURLs {
@@ -283,6 +269,31 @@ final class OpenXCRestultTests: XCTestCase {
         }
         let actualDataFiles = try dataFileNames(in: outputURL)
         XCTAssertEqual(actualDataFiles, expectedDataFiles, "Mismatch merged Data directory contents")
+    }
+
+    func testMergeForeignKeyIntegrity() throws {
+        let fixtureNames = [
+            "Test-RandomStuff-2026.01.11_12-36-33-+0200",
+            "Test-RandomStuff-2026.01.11_14-12-06-+0200",
+        ]
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
+        let outputURL = try mergeFixtures(fixtureNames)
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        var expectedViolations: Int64 = 0
+        for fixtureURL in fixtureURLs {
+            expectedViolations += try foreignKeyMissingReferenceCount(
+                in: fixtureURL.appendingPathComponent("database.sqlite3")
+            )
+        }
+
+        let outputDB = outputURL.appendingPathComponent("database.sqlite3")
+        let mergedViolations = try foreignKeyMissingReferenceCount(in: outputDB)
+        XCTAssertEqual(
+            mergedViolations,
+            expectedViolations,
+            "Merged database has unexpected foreign key violations"
+        )
     }
 
     func testXCResultToolContentAvailabilityParity() throws {
@@ -914,6 +925,24 @@ final class OpenXCRestultTests: XCTestCase {
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
+    private func mergeFixtures(_ fixtureNames: [String]) throws -> URL {
+        let fixtureURLs = fixtureNames.map { fixturesDirectory().appendingPathComponent("\($0).xcresult") }
+        for fixtureURL in fixtureURLs {
+            guard FileManager.default.fileExists(atPath: fixtureURL.path) else {
+                throw XCTSkip("Fixture not found at \(fixtureURL.path)")
+            }
+        }
+
+        let outputURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("merged-\(UUID().uuidString).xcresult")
+        let builder = MergeBuilder(
+            inputPaths: fixtureURLs.map { $0.path },
+            outputPath: outputURL.path
+        )
+        try builder.merge()
+        return outputURL
+    }
+
     private func tableNames(in databaseURL: URL) throws -> [String] {
         let database = try SQLiteDatabase(path: databaseURL.path)
         let names = try database.query(
@@ -935,6 +964,53 @@ final class OpenXCRestultTests: XCTestCase {
             SQLiteDatabase.int(statement, 0) ?? 0
         } ?? 0
         return Int64(count)
+    }
+
+    private struct ForeignKeyDefinition {
+        let table: String
+        let fromColumn: String
+        let referenceTable: String
+        let referenceColumn: String
+    }
+
+    private func foreignKeyDefinitions(in databaseURL: URL, table: String) throws -> [ForeignKeyDefinition] {
+        let database = try SQLiteDatabase(path: databaseURL.path)
+        let foreignKeys = try database.query("PRAGMA foreign_key_list(\"\(table)\");") { statement in
+            ForeignKeyDefinition(
+                table: table,
+                fromColumn: SQLiteDatabase.string(statement, 3) ?? "",
+                referenceTable: SQLiteDatabase.string(statement, 2) ?? "",
+                referenceColumn: SQLiteDatabase.string(statement, 4) ?? ""
+            )
+        }
+        return foreignKeys.filter {
+            !$0.fromColumn.isEmpty && !$0.referenceTable.isEmpty && !$0.referenceColumn.isEmpty
+        }
+    }
+
+    private func foreignKeyMissingReferenceCount(in databaseURL: URL) throws -> Int64 {
+        let tables = try tableNames(in: databaseURL)
+        var missing: Int64 = 0
+        let database = try SQLiteDatabase(path: databaseURL.path)
+
+        for table in tables {
+            let foreignKeys = try foreignKeyDefinitions(in: databaseURL, table: table)
+            for foreignKey in foreignKeys {
+                let sql = """
+                SELECT COUNT(*)
+                FROM "\(foreignKey.table)"
+                WHERE "\(foreignKey.fromColumn)" IS NOT NULL
+                  AND "\(foreignKey.fromColumn)" NOT IN (
+                    SELECT "\(foreignKey.referenceColumn)" FROM "\(foreignKey.referenceTable)"
+                  );
+                """
+                let count = try database.queryOne(sql) { statement in
+                    SQLiteDatabase.int(statement, 0) ?? 0
+                } ?? 0
+                missing += Int64(count)
+            }
+        }
+        return missing
     }
 
     private func dataFileNames(in bundleURL: URL) throws -> Set<String> {
