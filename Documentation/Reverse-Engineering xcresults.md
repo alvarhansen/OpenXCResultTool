@@ -101,6 +101,7 @@ CLI quick reference
 	•	openxcrestult get log --path Tests/Fixtures/<bundle>.xcresult --type action --format json
 	•	openxcrestult get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id "<ObjectId>" --format json
 	•	openxcrestult export diagnostics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Diagnostics
+	•	openxcrestult export attachments --path Tests/Fixtures/<bundle>.xcresult --output-path ./Attachments
 
 xcresulttool parity map
 	•	Implemented (OpenXCRestult parity targets):
@@ -110,8 +111,8 @@ xcresulttool parity map
 		get log (build/action/console)
 		get object (legacy JSON/raw, requires --legacy)
 		export diagnostics
-	•	Not yet implemented:
 		export attachments
+	•	Not yet implemented:
 		export metrics
 		export object
 		formatDescription get

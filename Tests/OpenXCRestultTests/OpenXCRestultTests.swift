@@ -312,6 +312,31 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    func testXCResultToolAttachmentsExportParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        for fixtureURL in fixtures {
+            try assertAttachmentsExportParity(
+                xcrunURL: xcrunURL,
+                fixtureURL: fixtureURL,
+                testId: nil,
+                onlyFailures: false
+            )
+        }
+
+        let filteredFixture = fixturesDirectory()
+            .appendingPathComponent("Test-RandomStuff-2026.01.11_12-36-33-+0200.xcresult")
+        try assertAttachmentsExportParity(
+            xcrunURL: xcrunURL,
+            fixtureURL: filteredFixture,
+            testId: "RandomStuffUITestsLaunchTests/testLaunch",
+            onlyFailures: false
+        )
+    }
+
     func testXCResultToolTestDetailsParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -843,6 +868,47 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    private func xcresulttoolExportAttachments(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        outputURL: URL,
+        testId: String?,
+        onlyFailures: Bool
+    ) throws {
+        let process = Process()
+        process.executableURL = xcrunURL
+        var arguments = [
+            "xcresulttool",
+            "export",
+            "attachments",
+            "--path",
+            fixtureURL.path,
+            "--output-path",
+            outputURL.path
+        ]
+        if let testId {
+            arguments.append(contentsOf: ["--test-id", testId])
+        }
+        if onlyFailures {
+            arguments.append("--only-failures")
+        }
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool export attachments failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+    }
+
     private func xcresulttoolObjectJSON(
         xcrunURL: URL,
         fixtureURL: URL,
@@ -945,6 +1011,16 @@ final class OpenXCRestultTests: XCTestCase {
         try exporter.export(to: outputURL.path)
     }
 
+    private func openXcresultExportAttachments(
+        fixturePath: String,
+        outputURL: URL,
+        testId: String?,
+        onlyFailures: Bool
+    ) throws {
+        let exporter = try AttachmentsExporter(xcresultPath: fixturePath)
+        try exporter.export(to: outputURL.path, testId: testId, onlyFailures: onlyFailures)
+    }
+
     private func openXcresultObjectOutput(
         fixturePath: String,
         id: String?
@@ -1022,6 +1098,71 @@ final class OpenXCRestultTests: XCTestCase {
             files[relative] = try Data(contentsOf: fileURL)
         }
         return files
+    }
+
+    private func assertAttachmentsExportParity(
+        xcrunURL: URL,
+        fixtureURL: URL,
+        testId: String?,
+        onlyFailures: Bool
+    ) throws {
+        let baseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        let expectedURL = baseURL.appendingPathComponent("expected")
+        let actualURL = baseURL.appendingPathComponent("actual")
+
+        try FileManager.default.createDirectory(at: expectedURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: actualURL, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: baseURL)
+        }
+
+        try xcresulttoolExportAttachments(
+            xcrunURL: xcrunURL,
+            fixtureURL: fixtureURL,
+            outputURL: expectedURL,
+            testId: testId,
+            onlyFailures: onlyFailures
+        )
+        try openXcresultExportAttachments(
+            fixturePath: fixtureURL.path,
+            outputURL: actualURL,
+            testId: testId,
+            onlyFailures: onlyFailures
+        )
+
+        var expectedFiles = try collectFiles(at: expectedURL)
+        var actualFiles = try collectFiles(at: actualURL)
+
+        let expectedManifest = expectedFiles.removeValue(forKey: "manifest.json")
+        let actualManifest = actualFiles.removeValue(forKey: "manifest.json")
+        XCTAssertNotNil(expectedManifest, "Missing expected manifest for fixture \(fixtureURL.lastPathComponent)")
+        XCTAssertNotNil(actualManifest, "Missing actual manifest for fixture \(fixtureURL.lastPathComponent)")
+
+        if let expectedManifest, let actualManifest {
+            let normalizedExpected = try normalizedJSON(expectedManifest)
+            let normalizedActual = try normalizedJSON(actualManifest)
+            XCTAssertEqual(
+                normalizedActual,
+                normalizedExpected,
+                "Mismatch manifest for fixture \(fixtureURL.lastPathComponent)"
+            )
+        }
+
+        XCTAssertEqual(
+            Set(expectedFiles.keys),
+            Set(actualFiles.keys),
+            "Mismatch attachments file list for fixture \(fixtureURL.lastPathComponent)"
+        )
+
+        for (path, expectedData) in expectedFiles {
+            let actualData = actualFiles[path]
+            XCTAssertEqual(
+                actualData,
+                expectedData,
+                "Mismatch attachment contents for \(fixtureURL.lastPathComponent): \(path)"
+            )
+        }
     }
 }
 
