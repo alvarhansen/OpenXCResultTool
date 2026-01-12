@@ -5,7 +5,7 @@ struct OpenXCRestultCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openxcrestult",
         abstract: "Read xcresult bundles without Xcode tooling.",
-        subcommands: [Get.self, Export.self, Metadata.self]
+        subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self]
     )
 }
 
@@ -585,6 +585,38 @@ struct MetadataAddExternalLocation: ParsableCommand {
             link: link,
             description: description
         )
+    }
+}
+
+struct GraphCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "graph",
+        abstract: "Print the object graph of the given result bundle."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("id"), help: "Optional object identifier to use as the graph root.")
+    var id: String?
+
+    @Flag(name: .customLong("legacy"), help: "Use legacy xcresulttool output behavior.")
+    var legacy = false
+
+    @Option(name: .customLong("version"), help: "Schema version in major.minor.patch format (unsupported).")
+    var version: String?
+
+    func run() throws {
+        guard legacy else {
+            throw ValidationError("Legacy format is required for graph output.")
+        }
+        guard version == nil else {
+            throw ValidationError("Versioned output is not supported yet.")
+        }
+
+        let builder = try GraphBuilder(xcresultPath: path)
+        let data = try builder.graph(id: id)
+        FileHandle.standardOutput.write(data)
     }
 }
 
