@@ -360,6 +360,36 @@ final class OpenXCRestultTests: XCTestCase {
         )
     }
 
+    func testXCResultToolMetadataParity() throws {
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+
+        let fixtures = try fixtureBundles()
+        do {
+            for fixtureURL in fixtures {
+                let expected = try xcresulttoolMetadataJSON(
+                    xcrunURL: xcrunURL,
+                    fixtureURL: fixtureURL
+                )
+                let actual = try openXcresultMetadataOutput(
+                    fixturePath: fixtureURL.path
+                )
+
+                let normalizedActual = try normalizedJSON(actual)
+                let normalizedExpected = try normalizedJSON(expected)
+
+                XCTAssertEqual(
+                    normalizedActual,
+                    normalizedExpected,
+                    "Mismatch metadata for fixture \(fixtureURL.lastPathComponent)"
+                )
+            }
+        } catch let error as ProcessFailure {
+            throw XCTSkip("xcresulttool metadata get failed: \(error.message)")
+        }
+    }
+
     func testXCResultToolTestDetailsParity() throws {
         guard let xcrunURL = resolveXcrun() else {
             throw XCTSkip("xcrun not available on this system.")
@@ -969,6 +999,37 @@ final class OpenXCRestultTests: XCTestCase {
         }
     }
 
+    private func xcresulttoolMetadataJSON(
+        xcrunURL: URL,
+        fixtureURL: URL
+    ) throws -> Data {
+        let process = Process()
+        process.executableURL = xcrunURL
+        process.arguments = [
+            "xcresulttool",
+            "metadata",
+            "get",
+            "--path",
+            fixtureURL.path
+        ]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        try process.run()
+
+        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let error = String(data: output, encoding: .utf8) ?? ""
+            throw ProcessFailure("xcresulttool metadata get failed for \(fixtureURL.lastPathComponent): \(error)")
+        }
+
+        return output
+    }
+
     private func xcresulttoolObjectJSON(
         xcrunURL: URL,
         fixtureURL: URL,
@@ -1088,6 +1149,13 @@ final class OpenXCRestultTests: XCTestCase {
     ) throws {
         let exporter = try MetricsExporter(xcresultPath: fixturePath)
         try exporter.export(to: outputURL.path, testId: testId)
+    }
+
+    private func openXcresultMetadataOutput(
+        fixturePath: String
+    ) throws -> Data {
+        let builder = MetadataBuilder(xcresultPath: fixturePath)
+        return try builder.metadataJSON(compact: false)
     }
 
     private func openXcresultObjectOutput(

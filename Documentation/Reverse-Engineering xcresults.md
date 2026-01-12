@@ -103,6 +103,7 @@ CLI quick reference
 	•	openxcrestult export diagnostics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Diagnostics
 	•	openxcrestult export attachments --path Tests/Fixtures/<bundle>.xcresult --output-path ./Attachments
 	•	openxcrestult export metrics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Metrics
+	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
 
 xcresulttool parity map
 	•	Implemented (OpenXCRestult parity targets):
@@ -114,6 +115,7 @@ xcresulttool parity map
 		export diagnostics
 		export attachments
 		export metrics
+		metadata get
 	•	Not yet implemented:
 		export object
 		formatDescription get

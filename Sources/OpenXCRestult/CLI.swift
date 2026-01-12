@@ -5,7 +5,7 @@ struct OpenXCRestultCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openxcrestult",
         abstract: "Read xcresult bundles without Xcode tooling.",
-        subcommands: [Get.self, Export.self]
+        subcommands: [Get.self, Export.self, Metadata.self]
     )
 }
 
@@ -491,6 +491,33 @@ struct LogCommand: ParsableCommand {
         if data.last != 0x0A {
             FileHandle.standardOutput.write(Data([0x0A]))
         }
+    }
+}
+
+struct Metadata: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Metadata commands.",
+        subcommands: [MetadataGet.self]
+    )
+}
+
+struct MetadataGet: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "get",
+        abstract: "Print metadata."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Flag(name: .customLong("compact"), help: "Emit compact JSON output.")
+    var compact = false
+
+    func run() throws {
+        let builder = MetadataBuilder(xcresultPath: path)
+        let data = try builder.metadataJSON(compact: compact)
+        FileHandle.standardOutput.write(data)
+        FileHandle.standardOutput.write(Data([0x0A]))
     }
 }
 
