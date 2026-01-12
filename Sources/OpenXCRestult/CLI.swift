@@ -12,8 +12,52 @@ struct OpenXCRestultCLI: ParsableCommand {
 struct Get: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Fetch data from an xcresult bundle.",
-        subcommands: [TestResults.self, ObjectCommand.self, LogCommand.self]
+        subcommands: [BuildResultsCommand.self, TestResults.self, ObjectCommand.self, LogCommand.self]
     )
+}
+
+struct BuildResultsCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "build-results",
+        abstract: "Print the build action details."
+    )
+
+    @Option(name: .customLong("path"), help: "Path to the .xcresult bundle.")
+    var path: String
+
+    @Option(name: .customLong("format"), help: "Output format (json).")
+    var format: String = "json"
+
+    @Flag(name: .customLong("compact"), help: "Emit compact JSON output.")
+    var compact = false
+
+    @Flag(name: .customLong("schema"), help: "Print output as JSON Schema (unsupported).")
+    var schema = false
+
+    @Option(name: .customLong("schema-version"), help: "Schema version in major.minor.patch format (unsupported).")
+    var schemaVersion: String?
+
+    func run() throws {
+        guard !schema, schemaVersion == nil else {
+            throw ValidationError("Schema output is not supported yet.")
+        }
+        guard format == "json" else {
+            throw ValidationError("Only --format json is supported.")
+        }
+
+        let builder = try BuildResultsBuilder(xcresultPath: path)
+        let results = try builder.buildResults()
+        let encoder = JSONEncoder()
+        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
+        if #available(macOS 10.15, *) {
+            formatting.insert(.withoutEscapingSlashes)
+        }
+        encoder.outputFormatting = formatting
+
+        let data = try encoder.encode(results)
+        FileHandle.standardOutput.write(data)
+        FileHandle.standardOutput.write(Data([0x0A]))
+    }
 }
 
 struct TestResults: ParsableCommand {
