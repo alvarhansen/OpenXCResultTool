@@ -99,6 +99,27 @@ CLI quick reference
 	•	openxcrestult get log --path Tests/Fixtures/<bundle>.xcresult --type action --format json
 	•	openxcrestult get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id "<ObjectId>" --format json
 
+xcresulttool parity map
+	•	Implemented (OpenXCRestult parity targets):
+		get test-results summary, tests, insights, test-details, activities, metrics
+		get log (build/action/console)
+		get object (legacy JSON/raw, requires --legacy)
+	•	Not yet implemented:
+		get build-results
+		get content-availability
+		export diagnostics
+		export attachments
+		export metrics
+		export object
+		formatDescription get
+		formatDescription diff
+		merge
+		metadata get
+		metadata addExternalLocation
+		version
+		graph
+		compare
+
 Core commands
 	•	Dump the summary JSON (oracle):
 		xcrun xcresulttool get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json
