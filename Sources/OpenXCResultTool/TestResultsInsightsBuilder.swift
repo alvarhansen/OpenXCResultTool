@@ -157,15 +157,8 @@ struct TestResultsInsightsBuilder {
     }
 
     private func formatMean(_ mean: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 1
-        formatter.maximumFractionDigits = 1
-        formatter.locale = Locale.current
-        if let formatted = formatter.string(from: NSNumber(value: mean)) {
-            return formatted
-        }
-        return String(format: "%.1f", mean)
+        let formatted = String(format: "%.1f", mean)
+        return formatted.replacingOccurrences(of: ".", with: ",")
     }
 
     private func formatThreshold(_ threshold: Double) -> String {
