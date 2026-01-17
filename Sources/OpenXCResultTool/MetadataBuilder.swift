@@ -1,13 +1,13 @@
 import Foundation
 
-struct MetadataBuilder {
+public struct MetadataBuilder {
     private let plistURL: URL
 
-    init(xcresultPath: String) {
+    public init(xcresultPath: String) {
         self.plistURL = MetadataBuilder.infoPlistURL(for: xcresultPath)
     }
 
-    func metadataJSON(compact: Bool) throws -> Data {
+    public func metadataJSON(compact: Bool) throws -> Data {
         let metadata = try loadMetadata()
         let options: JSONSerialization.WritingOptions = compact ? [] : [.prettyPrinted]
         return try JSONSerialization.data(withJSONObject: metadata, options: options)
@@ -30,7 +30,7 @@ struct MetadataBuilder {
         ]
     }
 
-    func addExternalLocation(identifier: String, link: String, description: String?) throws {
+    public func addExternalLocation(identifier: String, link: String, description: String?) throws {
         var format = PropertyListSerialization.PropertyListFormat.xml
         var dict = try readPlist(format: &format)
 

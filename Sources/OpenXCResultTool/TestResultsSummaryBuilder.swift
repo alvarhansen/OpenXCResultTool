@@ -1,16 +1,16 @@
 import Foundation
 import SQLite3
 
-struct TestResultsSummaryBuilder {
+public struct TestResultsSummaryBuilder {
     private let context: XCResultContext
     private let xcresultPath: String
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.xcresultPath = xcresultPath
         self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
-    func summary() throws -> TestResultsSummary {
+    public func summary() throws -> TestResultsSummary {
         let action = context.action
         let totalTestCount = try countTotalTests()
         let summaryCounts = try resultCountsForSummary()

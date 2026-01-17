@@ -1,14 +1,14 @@
 import Foundation
 import SQLite3
 
-struct TestResultsTestsBuilder {
+public struct TestResultsTestsBuilder {
     private let context: XCResultContext
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
-    func tests() throws -> TestResultsTests {
+    public func tests() throws -> TestResultsTests {
         let devices = try loadDevices()
         let configurations = try context.fetchConfigurations().map {
             TestPlanConfiguration(configurationId: String($0.id), configurationName: $0.name)

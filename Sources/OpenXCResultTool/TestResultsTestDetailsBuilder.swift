@@ -3,14 +3,14 @@ import SQLite3
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-struct TestResultsTestDetailsBuilder {
+public struct TestResultsTestDetailsBuilder {
     private let context: XCResultContext
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
-    func testDetails(testId: String) throws -> TestResultsTestDetails {
+    public func testDetails(testId: String) throws -> TestResultsTestDetails {
         guard let testCase = try fetchTestCase(identifier: testId) else {
             throw SQLiteError("Test case not found for identifier \(testId).")
         }

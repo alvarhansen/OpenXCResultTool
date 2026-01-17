@@ -1,4 +1,4 @@
-enum LogType: String, CaseIterable {
+public enum LogType: String, CaseIterable {
     case build
     case action
     case console

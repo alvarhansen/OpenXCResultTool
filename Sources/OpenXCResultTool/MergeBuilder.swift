@@ -3,11 +3,16 @@ import SQLite3
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-struct MergeBuilder {
-    let inputPaths: [String]
-    let outputPath: String
+public struct MergeBuilder {
+    public let inputPaths: [String]
+    public let outputPath: String
 
-    func merge() throws {
+    public init(inputPaths: [String], outputPath: String) {
+        self.inputPaths = inputPaths
+        self.outputPath = outputPath
+    }
+
+    public func merge() throws {
         guard inputPaths.count >= 2 else {
             throw MergeError("Two or more result bundle paths are required to merge.")
         }

@@ -1,33 +1,33 @@
 import Foundation
 
-struct TestResultsTestDetails: Encodable {
-    let arguments: [TestArgument]?
-    let devices: [SummaryDevice]
-    let duration: String
-    let durationInSeconds: Double
-    let hasMediaAttachments: Bool
-    let hasPerformanceMetrics: Bool
-    let startTime: Double?
-    let testDescription: String
-    let testIdentifier: String
-    let testIdentifierURL: String
-    let testName: String
-    let testPlanConfigurations: [TestPlanConfiguration]
-    let testResult: String
-    let testRuns: [TestDetailNode]
+public struct TestResultsTestDetails: Encodable {
+    public let arguments: [TestArgument]?
+    public let devices: [SummaryDevice]
+    public let duration: String
+    public let durationInSeconds: Double
+    public let hasMediaAttachments: Bool
+    public let hasPerformanceMetrics: Bool
+    public let startTime: Double?
+    public let testDescription: String
+    public let testIdentifier: String
+    public let testIdentifierURL: String
+    public let testName: String
+    public let testPlanConfigurations: [TestPlanConfiguration]
+    public let testResult: String
+    public let testRuns: [TestDetailNode]
 }
 
-struct TestArgument: Encodable {
-    let value: String
+public struct TestArgument: Encodable {
+    public let value: String
 }
 
-struct TestDetailNode: Encodable {
-    let children: [TestDetailNode]?
-    let details: String?
-    let duration: String?
-    let durationInSeconds: Double?
-    let name: String
-    let nodeIdentifier: String?
-    let nodeType: String
-    let result: String?
+public struct TestDetailNode: Encodable {
+    public let children: [TestDetailNode]?
+    public let details: String?
+    public let duration: String?
+    public let durationInSeconds: Double?
+    public let name: String
+    public let nodeIdentifier: String?
+    public let nodeType: String
+    public let result: String?
 }

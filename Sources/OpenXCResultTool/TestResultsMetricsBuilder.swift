@@ -3,14 +3,14 @@ import SQLite3
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-struct TestResultsMetricsBuilder {
+public struct TestResultsMetricsBuilder {
     private let context: XCResultContext
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
-    func metrics(testId: String?) throws -> [TestResultsMetricsEntry] {
+    public func metrics(testId: String?) throws -> [TestResultsMetricsEntry] {
         let testCases = try fetchTestCases(testId: testId)
         let planRuns = context.testPlanRuns
         let devicesByAction = try loadDevicesByAction()

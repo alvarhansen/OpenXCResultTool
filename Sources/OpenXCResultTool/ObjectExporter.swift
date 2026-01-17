@@ -1,18 +1,18 @@
 import Foundation
 
-enum ObjectExportKind: String {
+public enum ObjectExportKind: String {
     case file
     case directory
 }
 
-struct ObjectExporter {
+public struct ObjectExporter {
     private let store: XCResultFileBackedStore
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
     }
 
-    func export(id: String, type: ObjectExportKind, to outputPath: String) throws {
+    public func export(id: String, type: ObjectExportKind, to outputPath: String) throws {
         let outputURL = URL(fileURLWithPath: outputPath)
         switch type {
         case .file:

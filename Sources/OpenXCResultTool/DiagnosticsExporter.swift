@@ -1,15 +1,15 @@
 import Foundation
 
-struct DiagnosticsExporter {
+public struct DiagnosticsExporter {
     private let context: XCResultContext
     private let store: XCResultFileBackedStore
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
         self.store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
     }
 
-    func export(to outputPath: String) throws {
+    public func export(to outputPath: String) throws {
         let outputURL = URL(fileURLWithPath: outputPath)
         try FileManager.default.createDirectory(
             at: outputURL,

@@ -1,11 +1,13 @@
 import Foundation
 
-struct FormatDescriptionBuilder {
-    func descriptionJSON(includeEventStreamTypes: Bool) throws -> Data {
+public struct FormatDescriptionBuilder {
+    public init() {}
+
+    public func descriptionJSON(includeEventStreamTypes: Bool) throws -> Data {
         try loadResource(includeEventStreamTypes: includeEventStreamTypes)
     }
 
-    func signature(includeEventStreamTypes: Bool) throws -> String {
+    public func signature(includeEventStreamTypes: Bool) throws -> String {
         let data = try loadResource(includeEventStreamTypes: includeEventStreamTypes)
         let object = try JSONSerialization.jsonObject(with: data, options: [])
         guard let dict = object as? [String: Any],

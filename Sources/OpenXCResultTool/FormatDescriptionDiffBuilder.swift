@@ -1,7 +1,9 @@
 import Foundation
 
-struct FormatDescriptionDiffBuilder {
-    func diff(fromURL: URL, toURL: URL) throws -> FormatDescriptionDiffResult {
+public struct FormatDescriptionDiffBuilder {
+    public init() {}
+
+    public func diff(fromURL: URL, toURL: URL) throws -> FormatDescriptionDiffResult {
         let decoder = JSONDecoder()
         let from = try decoder.decode(FormatDescriptionFile.self, from: Data(contentsOf: fromURL))
         let to = try decoder.decode(FormatDescriptionFile.self, from: Data(contentsOf: toURL))
@@ -80,7 +82,7 @@ struct FormatDescriptionDiffBuilder {
         )
     }
 
-    func textOutput(diff: FormatDescriptionDiffResult) -> String {
+    public func textOutput(diff: FormatDescriptionDiffResult) -> String {
         var lines = [
             "Diff of versions: \(diff.fromVersion) -> \(diff.toVersion)",
             "Changes:"
@@ -103,7 +105,7 @@ struct FormatDescriptionDiffBuilder {
         return lines.joined(separator: "\n")
     }
 
-    func markdownOutput(diff: FormatDescriptionDiffResult) -> String {
+    public func markdownOutput(diff: FormatDescriptionDiffResult) -> String {
         var lines = [
             "# Format Description Diff \(diff.fromVersion) -> \(diff.toVersion)",
             "## Changes"
@@ -140,21 +142,21 @@ struct FormatDescriptionDiffBuilder {
     }
 }
 
-struct FormatDescriptionDiffResult {
-    let fromVersion: String
-    let toVersion: String
-    let addedTypes: [String]
-    let removedTypes: [String]
-    let addedProperties: [FormatDescriptionPropertyChange]
-    let removedProperties: [FormatDescriptionPropertyChange]
-    let changedProperties: [FormatDescriptionPropertyTypeChange]
+public struct FormatDescriptionDiffResult {
+    public let fromVersion: String
+    public let toVersion: String
+    public let addedTypes: [String]
+    public let removedTypes: [String]
+    public let addedProperties: [FormatDescriptionPropertyChange]
+    public let removedProperties: [FormatDescriptionPropertyChange]
+    public let changedProperties: [FormatDescriptionPropertyTypeChange]
 }
 
-struct FormatDescriptionPropertyChange: Comparable {
-    let typeName: String
-    let propertyName: String
+public struct FormatDescriptionPropertyChange: Comparable {
+    public let typeName: String
+    public let propertyName: String
 
-    static func < (lhs: FormatDescriptionPropertyChange, rhs: FormatDescriptionPropertyChange) -> Bool {
+    public static func < (lhs: FormatDescriptionPropertyChange, rhs: FormatDescriptionPropertyChange) -> Bool {
         if lhs.typeName != rhs.typeName {
             return lhs.typeName < rhs.typeName
         }
@@ -162,13 +164,13 @@ struct FormatDescriptionPropertyChange: Comparable {
     }
 }
 
-struct FormatDescriptionPropertyTypeChange: Comparable {
-    let typeName: String
-    let propertyName: String
-    let fromType: String
-    let toType: String
+public struct FormatDescriptionPropertyTypeChange: Comparable {
+    public let typeName: String
+    public let propertyName: String
+    public let fromType: String
+    public let toType: String
 
-    static func < (lhs: FormatDescriptionPropertyTypeChange, rhs: FormatDescriptionPropertyTypeChange) -> Bool {
+    public static func < (lhs: FormatDescriptionPropertyTypeChange, rhs: FormatDescriptionPropertyTypeChange) -> Bool {
         if lhs.typeName != rhs.typeName {
             return lhs.typeName < rhs.typeName
         }

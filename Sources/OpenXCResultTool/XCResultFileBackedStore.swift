@@ -1,24 +1,24 @@
 import Foundation
 
-struct XCResultFileBackedStore {
-    let xcresultURL: URL
-    let dataURL: URL
-    let rootId: String
+public struct XCResultFileBackedStore {
+    public let xcresultURL: URL
+    public let dataURL: URL
+    public let rootId: String
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         let url = URL(fileURLWithPath: xcresultPath)
         self.xcresultURL = url
         self.dataURL = url.appendingPathComponent("Data")
         self.rootId = try XCResultFileBackedStore.loadRootId(from: url)
     }
 
-    func loadObject(id: String) throws -> XCResultRawValue {
+    public func loadObject(id: String) throws -> XCResultRawValue {
         let rawData = try loadRawData(id: id)
         var parser = XCResultRawParser(data: rawData)
         return try parser.parse()
     }
 
-    func loadRawObjectData(id: String) throws -> Data {
+    public func loadRawObjectData(id: String) throws -> Data {
         try loadRawData(id: id)
     }
 

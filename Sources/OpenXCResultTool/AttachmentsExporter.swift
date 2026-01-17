@@ -1,16 +1,16 @@
 import Foundation
 import SQLite3
 
-struct AttachmentsExporter {
+public struct AttachmentsExporter {
     private let context: XCResultContext
     private let store: XCResultFileBackedStore
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
         self.store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
     }
 
-    func export(to outputPath: String, testId: String?, onlyFailures: Bool) throws {
+    public func export(to outputPath: String, testId: String?, onlyFailures: Bool) throws {
         let outputURL = URL(fileURLWithPath: outputPath)
         try FileManager.default.createDirectory(
             at: outputURL,

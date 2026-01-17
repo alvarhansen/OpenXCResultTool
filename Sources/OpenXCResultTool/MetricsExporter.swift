@@ -1,14 +1,14 @@
 import Foundation
 import SQLite3
 
-struct MetricsExporter {
+public struct MetricsExporter {
     private let context: XCResultContext
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
-    func export(to outputPath: String, testId: String?) throws {
+    public func export(to outputPath: String, testId: String?) throws {
         let outputURL = URL(fileURLWithPath: outputPath)
         try FileManager.default.createDirectory(
             at: outputURL,

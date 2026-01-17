@@ -1,14 +1,14 @@
 import Foundation
 
-struct GraphBuilder {
+public struct GraphBuilder {
     private let store: XCResultFileBackedStore
     private let fileManager = FileManager.default
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
     }
 
-    func graph(id: String?) throws -> Data {
+    public func graph(id: String?) throws -> Data {
         var lines: [String] = []
         let rootId = id ?? store.rootId
         try appendNode(id: rootId, indent: 0, lines: &lines)

@@ -1,29 +1,29 @@
 import Foundation
 
-struct BuildResults: Encodable {
-    let analyzerWarningCount: Int
-    let analyzerWarnings: [BuildIssue]
-    let destination: BuildDestination?
-    let endTime: Double
-    let errorCount: Int
-    let errors: [BuildIssue]
-    let startTime: Double
-    let status: String
-    let warningCount: Int
-    let warnings: [BuildIssue]
+public struct BuildResults: Encodable {
+    public let analyzerWarningCount: Int
+    public let analyzerWarnings: [BuildIssue]
+    public let destination: BuildDestination?
+    public let endTime: Double
+    public let errorCount: Int
+    public let errors: [BuildIssue]
+    public let startTime: Double
+    public let status: String
+    public let warningCount: Int
+    public let warnings: [BuildIssue]
 }
 
-struct BuildIssue: Encodable {
-    let issueType: String
-    let message: String
+public struct BuildIssue: Encodable {
+    public let issueType: String
+    public let message: String
 }
 
-struct BuildDestination: Encodable {
-    let architecture: String
-    let deviceId: String
-    let deviceName: String
-    let modelName: String
-    let osBuildNumber: String
-    let osVersion: String
-    let platform: String
+public struct BuildDestination: Encodable {
+    public let architecture: String
+    public let deviceId: String
+    public let deviceName: String
+    public let modelName: String
+    public let osBuildNumber: String
+    public let osVersion: String
+    public let platform: String
 }

@@ -1,8 +1,8 @@
 import Foundation
 
-struct ContentAvailability: Encodable {
-    let hasCoverage: Bool
-    let hasDiagnostics: Bool
-    let hasTestResults: Bool
-    let logs: [String]
+public struct ContentAvailability: Encodable {
+    public let hasCoverage: Bool
+    public let hasDiagnostics: Bool
+    public let hasTestResults: Bool
+    public let logs: [String]
 }

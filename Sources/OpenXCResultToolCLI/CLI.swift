@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import OpenXCResultTool
 
 struct OpenXCResultToolCLI: ParsableCommand {
     static let configuration = CommandConfiguration(

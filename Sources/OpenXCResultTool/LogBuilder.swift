@@ -1,9 +1,13 @@
 import Foundation
 
-struct LogBuilder {
-    let xcresultPath: String
+public struct LogBuilder {
+    public let xcresultPath: String
 
-    func log(type: LogType, compact: Bool) throws -> Data {
+    public init(xcresultPath: String) {
+        self.xcresultPath = xcresultPath
+    }
+
+    public func log(type: LogType, compact: Bool) throws -> Data {
         let store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
         let logId = try resolveLogId(store: store, type: type)
         let rawValue = try store.loadObject(id: logId)

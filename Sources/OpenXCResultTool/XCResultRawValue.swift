@@ -1,37 +1,37 @@
 import Foundation
 
-struct XCResultRawValue {
-    var typeName: String?
-    var fields: [String: XCResultRawValue]
-    var elements: [XCResultRawValue]
-    var scalar: String?
+public struct XCResultRawValue {
+    public var typeName: String?
+    public var fields: [String: XCResultRawValue]
+    public var elements: [XCResultRawValue]
+    public var scalar: String?
 
-    init(typeName: String? = nil,
-         fields: [String: XCResultRawValue] = [:],
-         elements: [XCResultRawValue] = [],
-         scalar: String? = nil) {
+    public init(typeName: String? = nil,
+                fields: [String: XCResultRawValue] = [:],
+                elements: [XCResultRawValue] = [],
+                scalar: String? = nil) {
         self.typeName = typeName
         self.fields = fields
         self.elements = elements
         self.scalar = scalar
     }
 
-    func value(for key: String) -> XCResultRawValue? {
+    public func value(for key: String) -> XCResultRawValue? {
         fields[key]
     }
 
-    var arrayValues: [XCResultRawValue] {
+    public var arrayValues: [XCResultRawValue] {
         if typeName == "Array" {
             return elements
         }
         return []
     }
 
-    var stringValue: String? {
+    public var stringValue: String? {
         scalar ?? fields["_v"]?.stringValue
     }
 
-    var hasScalarOnly: Bool {
+    public var hasScalarOnly: Bool {
         guard stringValue != nil else { return false }
         let otherKeys = fields.keys.filter { $0 != "_n" && $0 != "_v" && $0 != "_s" }
         return otherKeys.isEmpty && elements.isEmpty
@@ -56,7 +56,7 @@ struct XCResultRawValue {
         return dict
     }
 
-    func toLegacyJSONValue() -> Any {
+    public func toLegacyJSONValue() -> Any {
         if typeName == "Array" || (typeName == nil && fields.isEmpty && !elements.isEmpty) {
             let values = elements.map { $0.toLegacyJSONValue() }
             return [

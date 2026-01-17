@@ -1,23 +1,23 @@
 import Foundation
 
-struct TestResultsInsights: Encodable {
-    let commonFailureInsights: [CommonFailureInsight]
-    let failureDistributionInsights: [FailureDistributionInsight]
-    let longestTestRunsInsights: [LongestTestRunsInsight]
+public struct TestResultsInsights: Encodable {
+    public let commonFailureInsights: [CommonFailureInsight]
+    public let failureDistributionInsights: [FailureDistributionInsight]
+    public let longestTestRunsInsights: [LongestTestRunsInsight]
 }
 
-struct CommonFailureInsight: Encodable {}
+public struct CommonFailureInsight: Encodable {}
 
-struct FailureDistributionInsight: Encodable {}
+public struct FailureDistributionInsight: Encodable {}
 
-struct LongestTestRunsInsight: Encodable {
-    let associatedTestIdentifiers: [String]
-    let deviceName: String
-    let durationOfSlowTests: Double
-    let impact: String
-    let meanTime: String
-    let osNameAndVersion: String
-    let targetName: String
-    let testPlanConfigurationName: String
-    let title: String
+public struct LongestTestRunsInsight: Encodable {
+    public let associatedTestIdentifiers: [String]
+    public let deviceName: String
+    public let durationOfSlowTests: Double
+    public let impact: String
+    public let meanTime: String
+    public let osNameAndVersion: String
+    public let targetName: String
+    public let testPlanConfigurationName: String
+    public let title: String
 }

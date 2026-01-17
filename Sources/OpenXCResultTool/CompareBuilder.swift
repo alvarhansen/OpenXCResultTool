@@ -1,16 +1,16 @@
 import Foundation
 import SQLite3
 
-struct CompareBuilder {
+public struct CompareBuilder {
     private let baseline: XCResultContext
     private let current: XCResultContext
 
-    init(baselinePath: String, currentPath: String) throws {
+    public init(baselinePath: String, currentPath: String) throws {
         self.baseline = try XCResultContext(xcresultPath: baselinePath)
         self.current = try XCResultContext(xcresultPath: currentPath)
     }
 
-    func compare() throws -> CompareResult {
+    public func compare() throws -> CompareResult {
         let baselineTests = try loadTests(context: baseline)
         let currentTests = try loadTests(context: current)
         let testDiff = diffOrdered(
@@ -234,73 +234,75 @@ struct CompareBuilder {
     }
 }
 
-struct CompareResult {
-    let summary: CompareSummary
-    let testFailures: TestFailuresDifferential
-    let testsExecuted: TestsExecutedDifferential
-    let buildWarnings: IssuesDifferential
-    let analyzerIssues: IssuesDifferential
+public struct CompareResult {
+    public let summary: CompareSummary
+    public let testFailures: TestFailuresDifferential
+    public let testsExecuted: TestsExecutedDifferential
+    public let buildWarnings: IssuesDifferential
+    public let analyzerIssues: IssuesDifferential
 }
 
-struct CompareOutput: Encodable {
-    var analyzerIssues: IssuesDifferential?
-    var buildWarnings: IssuesDifferential?
-    var summary: CompareSummary?
-    var testFailures: TestFailuresDifferential?
-    var testsExecuted: TestsExecutedDifferential?
+public struct CompareOutput: Encodable {
+    public var analyzerIssues: IssuesDifferential?
+    public var buildWarnings: IssuesDifferential?
+    public var summary: CompareSummary?
+    public var testFailures: TestFailuresDifferential?
+    public var testsExecuted: TestsExecutedDifferential?
+
+    public init() {}
 }
 
-struct CompareSummary: Encodable {
-    let analyzerIssues: DifferentialSummaryDetails
-    let buildWarnings: DifferentialSummaryDetails
-    let testFailures: DifferentialSummaryDetails
-    let testsExecuted: DifferentialSummaryTestDetails
+public struct CompareSummary: Encodable {
+    public let analyzerIssues: DifferentialSummaryDetails
+    public let buildWarnings: DifferentialSummaryDetails
+    public let testFailures: DifferentialSummaryDetails
+    public let testsExecuted: DifferentialSummaryTestDetails
 }
 
-struct DifferentialSummaryDetails: Encodable {
-    let itemsInBaseline: Int
-    let itemsInCurrent: Int
-    let introduced: Int
-    let resolved: Int
+public struct DifferentialSummaryDetails: Encodable {
+    public let itemsInBaseline: Int
+    public let itemsInCurrent: Int
+    public let introduced: Int
+    public let resolved: Int
 }
 
-struct DifferentialSummaryTestDetails: Encodable {
-    let itemsInBaseline: Int
-    let itemsInCurrent: Int
-    let added: Int
-    let removed: Int
+public struct DifferentialSummaryTestDetails: Encodable {
+    public let itemsInBaseline: Int
+    public let itemsInCurrent: Int
+    public let added: Int
+    public let removed: Int
 }
 
-struct TestFailuresDifferential: Encodable {
-    let introduced: [TestFailureDifferentialDetails]
-    let resolved: [TestFailureDifferentialDetails]
+public struct TestFailuresDifferential: Encodable {
+    public let introduced: [TestFailureDifferentialDetails]
+    public let resolved: [TestFailureDifferentialDetails]
 }
 
-struct TestFailureDifferentialDetails: Encodable {
-    let associatedTest: CompareTestReference
-    let failureMessage: String
+public struct TestFailureDifferentialDetails: Encodable {
+    public let associatedTest: CompareTestReference
+    public let failureMessage: String
 }
 
-struct TestsExecutedDifferential: Encodable {
-    let added: [CompareTestReference]
-    let removed: [CompareTestReference]
+public struct TestsExecutedDifferential: Encodable {
+    public let added: [CompareTestReference]
+    public let removed: [CompareTestReference]
 }
 
-struct CompareTestReference: Encodable {
-    let name: String
-    let testIdentifier: String
-    let testIdentifierURL: String
+public struct CompareTestReference: Encodable {
+    public let name: String
+    public let testIdentifier: String
+    public let testIdentifierURL: String
 }
 
-struct IssuesDifferential: Encodable {
-    let introduced: [CompareIssueReference]
-    let resolved: [CompareIssueReference]
+public struct IssuesDifferential: Encodable {
+    public let introduced: [CompareIssueReference]
+    public let resolved: [CompareIssueReference]
 }
 
-struct CompareIssueReference: Encodable {
-    let message: String
-    let producingTarget: String?
-    let issueType: String
+public struct CompareIssueReference: Encodable {
+    public let message: String
+    public let producingTarget: String?
+    public let issueType: String
 }
 
 private struct CompareTestEntry {

@@ -1,16 +1,16 @@
 import Foundation
 import SQLite3
 
-struct BuildResultsBuilder {
+public struct BuildResultsBuilder {
     private let context: XCResultContext
     private let store: XCResultFileBackedStore
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
         self.store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
     }
 
-    func buildResults() throws -> BuildResults {
+    public func buildResults() throws -> BuildResults {
         let issues = try loadIssues()
         let destination = try loadDestination()
         let startTime = toUnixTime(context.action.started)

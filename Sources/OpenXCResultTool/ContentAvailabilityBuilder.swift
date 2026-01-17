@@ -1,13 +1,13 @@
 import Foundation
 
-struct ContentAvailabilityBuilder {
+public struct ContentAvailabilityBuilder {
     private let store: XCResultFileBackedStore
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
     }
 
-    func contentAvailability() throws -> ContentAvailability {
+    public func contentAvailability() throws -> ContentAvailability {
         let root = try store.loadObject(id: store.rootId)
         let actions = root.value(for: "actions")?.arrayValues ?? []
         guard let action = actions.first else {

@@ -1,32 +1,32 @@
 import Foundation
 
-struct TestResultsMetricsDevice: Encodable {
-    let deviceId: String
-    let deviceName: String
+public struct TestResultsMetricsDevice: Encodable {
+    public let deviceId: String
+    public let deviceName: String
 }
 
-struct TestResultsMetricsRun: Encodable {
-    let device: TestResultsMetricsDevice
-    let metrics: [PerformanceMetric]
-    let testPlanConfiguration: TestPlanConfiguration
+public struct TestResultsMetricsRun: Encodable {
+    public let device: TestResultsMetricsDevice
+    public let metrics: [PerformanceMetric]
+    public let testPlanConfiguration: TestPlanConfiguration
 }
 
-struct TestResultsMetricsEntry: Encodable {
-    let testIdentifier: String
-    let testIdentifierURL: String
-    let testRuns: [TestResultsMetricsRun]
+public struct TestResultsMetricsEntry: Encodable {
+    public let testIdentifier: String
+    public let testIdentifierURL: String
+    public let testRuns: [TestResultsMetricsRun]
 }
 
-struct PerformanceMetric: Encodable {
-    let baselineAverage: Double
-    let baselineName: String
-    let displayName: String
-    let identifier: String
-    let maxPercentRegression: Double
-    let maxPercentRelativeStandardDeviation: Double
-    let maxRegression: Double
-    let maxStandardDeviation: Double
-    let measurements: [Double]
-    let polarity: String
-    let unitOfMeasurement: String
+public struct PerformanceMetric: Encodable {
+    public let baselineAverage: Double
+    public let baselineName: String
+    public let displayName: String
+    public let identifier: String
+    public let maxPercentRegression: Double
+    public let maxPercentRelativeStandardDeviation: Double
+    public let maxRegression: Double
+    public let maxStandardDeviation: Double
+    public let measurements: [Double]
+    public let polarity: String
+    public let unitOfMeasurement: String
 }

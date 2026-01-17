@@ -1,14 +1,14 @@
 import Foundation
 import SQLite3
 
-struct TestResultsInsightsBuilder {
+public struct TestResultsInsightsBuilder {
     private let context: XCResultContext
 
-    init(xcresultPath: String) throws {
+    public init(xcresultPath: String) throws {
         self.context = try XCResultContext(xcresultPath: xcresultPath)
     }
 
-    func insights() throws -> TestResultsInsights {
+    public func insights() throws -> TestResultsInsights {
         let longest = try longestTestRunsInsights()
         return TestResultsInsights(
             commonFailureInsights: [],

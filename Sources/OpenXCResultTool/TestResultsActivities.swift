@@ -1,31 +1,31 @@
 import Foundation
 
-struct TestResultsActivities: Encodable {
-    let testIdentifier: String
-    let testIdentifierURL: String
-    let testName: String
-    let testRuns: [TestRunActivities]
+public struct TestResultsActivities: Encodable {
+    public let testIdentifier: String
+    public let testIdentifierURL: String
+    public let testName: String
+    public let testRuns: [TestRunActivities]
 }
 
-struct TestRunActivities: Encodable {
-    let activities: [ActivityNode]
-    let arguments: [TestArgument]?
-    let device: SummaryDevice
-    let testPlanConfiguration: TestPlanConfiguration
+public struct TestRunActivities: Encodable {
+    public let activities: [ActivityNode]
+    public let arguments: [TestArgument]?
+    public let device: SummaryDevice
+    public let testPlanConfiguration: TestPlanConfiguration
 }
 
-struct ActivityNode: Encodable {
-    let attachments: [ActivityAttachment]?
-    let childActivities: [ActivityNode]?
-    let isAssociatedWithFailure: Bool
-    let startTime: Double?
-    let title: String
+public struct ActivityNode: Encodable {
+    public let attachments: [ActivityAttachment]?
+    public let childActivities: [ActivityNode]?
+    public let isAssociatedWithFailure: Bool
+    public let startTime: Double?
+    public let title: String
 }
 
-struct ActivityAttachment: Encodable {
-    let lifetime: String
-    let name: String
-    let payloadId: String
-    let timestamp: Double
-    let uuid: String
+public struct ActivityAttachment: Encodable {
+    public let lifetime: String
+    public let name: String
+    public let payloadId: String
+    public let timestamp: Double
+    public let uuid: String
 }
