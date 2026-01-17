@@ -1,9 +1,9 @@
 import ArgumentParser
 import Foundation
 
-struct OpenXCRestultCLI: ParsableCommand {
+struct OpenXCResultToolCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "openxcrestult",
+        commandName: "openxcresulttool",
         abstract: "Read xcresult bundles without Xcode tooling.",
         subcommands: [Get.self, Export.self, Metadata.self, GraphCommand.self, FormatDescriptionCommand.self, CompareCommand.self, MergeCommand.self, VersionCommand.self]
     )
@@ -830,12 +830,12 @@ struct MergeCommand: ParsableCommand {
 struct VersionCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "version",
-        abstract: "Print the version of OpenXCRestult."
+        abstract: "Print the version of OpenXCResultTool."
     )
 
     func run() throws {
         let output = """
-        openxcrestult version \(OpenXCRestultVersion.tool) (schema version: \(OpenXCRestultVersion.schema), legacy commands format version: \(OpenXCRestultVersion.legacyFormat))
+        openxcresulttool version \(OpenXCResultToolVersion.tool) (schema version: \(OpenXCResultToolVersion.schema), legacy commands format version: \(OpenXCResultToolVersion.legacyFormat))
         """
         FileHandle.standardOutput.write(Data((output + "\n").utf8))
     }

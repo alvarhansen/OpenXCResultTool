@@ -89,32 +89,32 @@ Debug/Reverse-Engineering Workflow (Project Notes)
 Use the xcresulttool JSON as the oracle, then map fields to SQLite tables.
 
 CLI quick reference
-	•	openxcrestult get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json
-	•	openxcrestult get test-results tests --path Tests/Fixtures/<bundle>.xcresult --format json
-	•	openxcrestult get test-results test-details --path Tests/Fixtures/<bundle>.xcresult --test-id "<TestId>" --format json
-	•	openxcrestult get test-results activities --path Tests/Fixtures/<bundle>.xcresult --test-id "<TestId>" --format json
-	•	openxcrestult get test-results metrics --path Tests/Fixtures/<bundle>.xcresult --format json
-	•	openxcrestult get test-results insights --path Tests/Fixtures/<bundle>.xcresult --format json
-	•	openxcrestult get build-results --path Tests/Fixtures/<bundle>.xcresult --format json
-	•	openxcrestult get content-availability --path Tests/Fixtures/<bundle>.xcresult --format json
-	•	openxcrestult get log --path Tests/Fixtures/<bundle>.xcresult --type build --format json
-	•	openxcrestult get log --path Tests/Fixtures/<bundle>.xcresult --type action --format json
-	•	openxcrestult get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id "<ObjectId>" --format json
-	•	openxcrestult export diagnostics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Diagnostics
-	•	openxcrestult export attachments --path Tests/Fixtures/<bundle>.xcresult --output-path ./Attachments
-	•	openxcrestult export metrics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Metrics
-	•	openxcrestult export object --legacy --path Tests/Fixtures/<bundle>.xcresult --output-path ./Object --type directory --id "<ObjectId>"
-	•	openxcrestult graph --legacy --path Tests/Fixtures/<bundle>.xcresult [--id "<ObjectId>"]
-	•	openxcrestult formatDescription get --legacy [--format json] [--hash] [--include-event-stream-types]
-	•	openxcrestult formatDescription diff --legacy [--format text | markdown] <version1.json> <version2.json>
-	•	openxcrestult compare <comparison.xcresult> --baseline-path <baseline.xcresult> [--summary] [--test-failures] [--tests] [--build-warnings] [--analyzer-issues]
-	•	openxcrestult merge --output-path <merged.xcresult> <bundle1.xcresult> <bundle2.xcresult> [<bundleN.xcresult>]
-	•	openxcrestult metadata get --path Tests/Fixtures/<bundle>.xcresult
-	•	openxcrestult metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
-	•	openxcrestult version
+	•	openxcresulttool get test-results summary --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcresulttool get test-results tests --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcresulttool get test-results test-details --path Tests/Fixtures/<bundle>.xcresult --test-id "<TestId>" --format json
+	•	openxcresulttool get test-results activities --path Tests/Fixtures/<bundle>.xcresult --test-id "<TestId>" --format json
+	•	openxcresulttool get test-results metrics --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcresulttool get test-results insights --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcresulttool get build-results --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcresulttool get content-availability --path Tests/Fixtures/<bundle>.xcresult --format json
+	•	openxcresulttool get log --path Tests/Fixtures/<bundle>.xcresult --type build --format json
+	•	openxcresulttool get log --path Tests/Fixtures/<bundle>.xcresult --type action --format json
+	•	openxcresulttool get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id "<ObjectId>" --format json
+	•	openxcresulttool export diagnostics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Diagnostics
+	•	openxcresulttool export attachments --path Tests/Fixtures/<bundle>.xcresult --output-path ./Attachments
+	•	openxcresulttool export metrics --path Tests/Fixtures/<bundle>.xcresult --output-path ./Metrics
+	•	openxcresulttool export object --legacy --path Tests/Fixtures/<bundle>.xcresult --output-path ./Object --type directory --id "<ObjectId>"
+	•	openxcresulttool graph --legacy --path Tests/Fixtures/<bundle>.xcresult [--id "<ObjectId>"]
+	•	openxcresulttool formatDescription get --legacy [--format json] [--hash] [--include-event-stream-types]
+	•	openxcresulttool formatDescription diff --legacy [--format text | markdown] <version1.json> <version2.json>
+	•	openxcresulttool compare <comparison.xcresult> --baseline-path <baseline.xcresult> [--summary] [--test-failures] [--tests] [--build-warnings] [--analyzer-issues]
+	•	openxcresulttool merge --output-path <merged.xcresult> <bundle1.xcresult> <bundle2.xcresult> [<bundleN.xcresult>]
+	•	openxcresulttool metadata get --path Tests/Fixtures/<bundle>.xcresult
+	•	openxcresulttool metadata addExternalLocation --path Tests/Fixtures/<bundle>.xcresult --identifier "<Id>" --link "<URL>" --description "<Description>"
+	•	openxcresulttool version
 
 xcresulttool parity map
-	•	Implemented (OpenXCRestult parity targets):
+	•	Implemented (OpenXCResultTool parity targets):
 		get test-results summary, tests, insights, test-details, activities, metrics
 		get build-results
 		get content-availability
@@ -128,12 +128,12 @@ xcresulttool parity map
 		formatDescription get
 		formatDescription diff
 		compare
-		merge (OpenXCRestult uses SQLite + Data union; output differs from xcresulttool)
+		merge (OpenXCResultTool uses SQLite + Data union; output differs from xcresulttool)
 		metadata get
 		metadata addExternalLocation
 		version
 	Merged bundle notes:
-		•	When a merged bundle contains multiple actions/test plan runs, `get test-results tests` nests Device → Test Plan Configuration nodes under each Test Case, and summary statistics include the "tests ran on N configurations and M devices" entry. OpenXCRestult mirrors this behavior.
+		•	When a merged bundle contains multiple actions/test plan runs, `get test-results tests` nests Device → Test Plan Configuration nodes under each Test Case, and summary statistics include the "tests ran on N configurations and M devices" entry. OpenXCResultTool mirrors this behavior.
 		•	For `get test-results test-details`/`activities`, `xcresulttool` may require an identifier URL if a test identifier is duplicated across runs.
 Core commands
 	•	Dump the summary JSON (oracle):

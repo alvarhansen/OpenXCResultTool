@@ -1,8 +1,8 @@
 import Foundation
 import XCTest
-@testable import OpenXCRestult
+@testable import OpenXCResultTool
 
-final class OpenXCRestultTests: XCTestCase {
+final class OpenXCResultToolTests: XCTestCase {
     func testSummaryMatchesFixture() throws {
         try assertMatchesSnapshots(
             suffix: "summary",
@@ -399,7 +399,7 @@ final class OpenXCRestultTests: XCTestCase {
 
         let outputDB = outputURL.appendingPathComponent("database.sqlite3")
         guard FileManager.default.fileExists(atPath: outputDB.path) else {
-            throw XCTSkip("xcresulttool merge output missing database.sqlite3; OpenXCRestult requires it.")
+            throw XCTSkip("xcresulttool merge output missing database.sqlite3; OpenXCResultTool requires it.")
         }
 
         let detailTestIds = [
@@ -614,7 +614,7 @@ final class OpenXCRestultTests: XCTestCase {
 
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let baseURL = root.appendingPathComponent("Sources")
-            .appendingPathComponent("OpenXCRestult")
+            .appendingPathComponent("OpenXCResultTool")
             .appendingPathComponent("Resources")
         let originalURL = baseURL.appendingPathComponent("formatDescription.json")
         let eventURL = baseURL.appendingPathComponent("formatDescription-event-stream.json")
