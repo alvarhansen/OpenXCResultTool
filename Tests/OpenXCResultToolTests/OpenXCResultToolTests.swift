@@ -181,9 +181,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let commands: [XCResulttoolCommand] = [.summary, .tests, .insights, .metrics]
         let fixtures = try fixtureBundles()
@@ -213,9 +211,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolBuildResultsParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         for fixtureURL in fixtures {
@@ -350,9 +346,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testMergeXCResultToolParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtureNames = [
             "Test-RandomStuff-2026.01.11_12-36-33-+0200",
@@ -379,9 +373,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolMergeOutputParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtureNames = [
             "Test-RandomStuff-2026.01.11_12-36-33-+0200",
@@ -419,9 +411,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolContentAvailabilityParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         for fixtureURL in fixtures {
@@ -445,9 +435,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolDiagnosticsExportParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         for fixtureURL in fixtures {
@@ -493,9 +481,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolExportObjectParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         var selectedFixture: URL?
@@ -524,9 +510,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolGraphParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         do {
@@ -553,9 +537,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolFormatDescriptionParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         do {
             let expected = try xcresulttoolFormatDescriptionOutput(
@@ -608,9 +590,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolFormatDescriptionDiffParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let baseURL = root.appendingPathComponent("Sources")
@@ -659,9 +639,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolCompareParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let baselineURL = fixturesDirectory()
             .appendingPathComponent("Test-RandomStuff-2026.01.11_12-36-33-+0200.xcresult")
@@ -692,9 +670,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolAttachmentsExportParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         for fixtureURL in fixtures {
@@ -717,9 +693,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolMetricsExportParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         for fixtureURL in fixtures {
@@ -740,9 +714,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolMetadataParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         do {
@@ -770,9 +742,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolMetadataAddExternalLocationParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtureURL = fixturesDirectory()
             .appendingPathComponent("Test-RandomStuff-2026.01.11_12-36-33-+0200.xcresult")
@@ -821,9 +791,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolTestDetailsParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let snapshots = [
             TestDetailsSnapshot(
@@ -889,9 +857,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolActivitiesParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let snapshots = [
             ActivitiesSnapshot(
@@ -942,9 +908,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolLogParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let logTypes: [XCResulttoolLogType] = [.build, .action, .console]
         let fixtures = try fixtureBundles()
@@ -981,9 +945,7 @@ final class OpenXCResultToolTests: XCTestCase {
     }
 
     func testXCResultToolObjectParity() throws {
-        guard let xcrunURL = resolveXcrun() else {
-            throw XCTSkip("xcrun not available on this system.")
-        }
+        let xcrunURL = try requireXcrun()
 
         let fixtures = try fixtureBundles()
         for fixtureURL in fixtures {
@@ -1386,6 +1348,17 @@ final class OpenXCResultToolTests: XCTestCase {
         let path = "/usr/bin/xcrun"
         guard FileManager.default.isExecutableFile(atPath: path) else { return nil }
         return URL(fileURLWithPath: path)
+    }
+
+    private func requireXcrun() throws -> URL {
+#if os(Linux)
+        throw XCTSkip("xcrun is only available on macOS.")
+#else
+        guard let xcrunURL = resolveXcrun() else {
+            throw XCTSkip("xcrun not available on this system.")
+        }
+        return xcrunURL
+#endif
     }
 
     private func assertXCResultToolParity(
