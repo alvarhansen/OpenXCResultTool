@@ -3,9 +3,9 @@ DOCKER_PLATFORM ?=
 WORKDIR ?= /work
 TEST_ARGS ?=
 TEST_TIMEOUT ?= 30
-WASM_IMAGE ?= ghcr.io/swiftwasm/swiftwasm:latest
+WASM_IMAGE ?= openxcresulttool-wasm:6.2.3
 WASM_PLATFORM ?=
-WASM_TARGET ?= wasm32-unknown-wasi
+WASM_SDK_ID ?= swift-6.2.3-RELEASE_wasm
 WASM_BUILD_ARGS ?= --product OpenXCResultTool
 
 DOCKER_PLATFORM_FLAG := $(if $(DOCKER_PLATFORM),--platform=$(DOCKER_PLATFORM),)
@@ -30,4 +30,4 @@ wasm-image:
 	$(WASM_BUILD_CMD)
 
 wasm-build:
-	$(WASM_CMD) swift build --triple $(WASM_TARGET) $(WASM_BUILD_ARGS)
+	$(WASM_CMD) swift build --swift-sdk $(WASM_SDK_ID) $(WASM_BUILD_ARGS)
