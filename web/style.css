@@ -110,6 +110,29 @@ h1 {
   line-height: 1.5;
 }
 
+.drop-zone {
+  border-radius: 18px;
+  border: 1px solid rgba(30, 111, 106, 0.2);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.drop-zone-label {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--accent-2);
+}
+
+.drop-zone.dragover {
+  border-color: var(--accent-2);
+  background: rgba(30, 111, 106, 0.08);
+  box-shadow: 0 16px 30px rgba(30, 111, 106, 0.18);
+}
+
 .drop {
   border: 2px dashed rgba(30, 111, 106, 0.35);
   border-radius: 16px;

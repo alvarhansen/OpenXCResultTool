@@ -22,17 +22,20 @@
       <article class="card">
         <h2>1. Load Bundle</h2>
         <p>Select the <code>.xcresult</code> folder (not a zip). We write the bundle into a virtual FS at <code>/work/&lt;bundle&gt;.xcresult</code>.</p>
-        <label class="drop">
-          <input id="xcresult-input" type="file" webkitdirectory directory multiple>
-          <span>Choose .xcresult folder</span>
-        </label>
-        <label class="drop alt">
-          <input id="xcresult-zip-input" type="file" accept=".zip">
-          <span>Choose .xcresult.zip</span>
-        </label>
-        <div class="meta">
-          <span id="bundle-name">No bundle loaded.</span>
-          <span id="bundle-count">0 files</span>
+        <div id="drop-zone" class="drop-zone">
+          <p class="drop-zone-label">Drag &amp; drop a <code>.xcresult</code> folder or <code>.xcresult.zip</code>.</p>
+          <label class="drop">
+            <input id="xcresult-input" type="file" webkitdirectory directory multiple>
+            <span>Choose .xcresult folder</span>
+          </label>
+          <label class="drop alt">
+            <input id="xcresult-zip-input" type="file" accept=".zip">
+            <span>Choose .xcresult.zip</span>
+          </label>
+          <div class="meta">
+            <span id="bundle-name">No bundle loaded.</span>
+            <span id="bundle-count">0 files</span>
+          </div>
         </div>
       </article>
 

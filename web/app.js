@@ -9,6 +9,7 @@ const decoder = new TextDecoder();
 const elements = {
   input: document.getElementById("xcresult-input"),
   zipInput: document.getElementById("xcresult-zip-input"),
+  dropZone: document.getElementById("drop-zone"),
   bundleName: document.getElementById("bundle-name"),
   bundleCount: document.getElementById("bundle-count"),
   commandSelect: document.getElementById("command-select"),
@@ -448,6 +449,22 @@ function handleFiles(event) {
   const samplePath = files[0].webkitRelativePath || files[0].name;
   const rootName = samplePath.split("/")[0] || "bundle.xcresult";
 
+  applyDirectoryFiles(files, rootName);
+}
+
+async function handleZipFile(event) {
+  const [file] = Array.from(event.target.files || []);
+  if (!file) {
+    if (state.source === "zip") {
+      resetState();
+    }
+    return;
+  }
+
+  await handleZipData(file);
+}
+
+function applyDirectoryFiles(files, rootName) {
   state.source = "directory";
   state.files = files;
   state.entries = [];
@@ -460,15 +477,7 @@ function handleFiles(event) {
   setStatus("Bundle staged. Ready to run.", "success");
 }
 
-async function handleZipFile(event) {
-  const [file] = Array.from(event.target.files || []);
-  if (!file) {
-    if (state.source === "zip") {
-      resetState();
-    }
-    return;
-  }
-
+async function handleZipData(file) {
   setStatus("Unpacking zip...", "info");
   let entries;
   try {
@@ -498,6 +507,107 @@ async function handleZipFile(event) {
   setStatus("Zip staged. Ready to run.", "success");
 }
 
+function setDropActive(active) {
+  if (!elements.dropZone) {
+    return;
+  }
+  elements.dropZone.classList.toggle("dragover", active);
+}
+
+function readAllDirectoryEntries(reader) {
+  return new Promise((resolve, reject) => {
+    const entries = [];
+    const readBatch = () => {
+      reader.readEntries((batch) => {
+        if (!batch.length) {
+          resolve(entries);
+          return;
+        }
+        entries.push(...batch);
+        readBatch();
+      }, reject);
+    };
+    readBatch();
+  });
+}
+
+function entryRelativePath(entry, rootName) {
+  if (entry.fullPath) {
+    return entry.fullPath.replace(/^\//, "");
+  }
+  return `${rootName}/${entry.name}`;
+}
+
+async function collectFilesFromEntry(entry, rootName, files) {
+  if (entry.isFile) {
+    await new Promise((resolve, reject) => {
+      entry.file((file) => {
+        const relativePath = entryRelativePath(entry, rootName);
+        try {
+          Object.defineProperty(file, "webkitRelativePath", {
+            value: relativePath,
+          });
+        } catch (error) {
+          // Best effort; fall back to name if the property is read-only.
+        }
+        files.push(file);
+        resolve();
+      }, reject);
+    });
+    return;
+  }
+
+  if (entry.isDirectory) {
+    const reader = entry.createReader();
+    const children = await readAllDirectoryEntries(reader);
+    for (const child of children) {
+      await collectFilesFromEntry(child, rootName, files);
+    }
+  }
+}
+
+async function handleDrop(event) {
+  const dataTransfer = event.dataTransfer;
+  if (!dataTransfer) {
+    setStatus("Drop a .xcresult.zip or .xcresult folder.", "error");
+    return;
+  }
+
+  const items = Array.from(dataTransfer.items || []);
+  const entries = items
+    .map((item) => (item.webkitGetAsEntry ? item.webkitGetAsEntry() : null))
+    .filter(Boolean);
+
+  if (entries.length) {
+    const xcresultEntry = entries.find((entry) => entry.isDirectory && entry.name.endsWith(".xcresult"));
+    const directoryEntry = xcresultEntry || entries.find((entry) => entry.isDirectory);
+    if (directoryEntry) {
+      const files = [];
+      await collectFilesFromEntry(directoryEntry, directoryEntry.name, files);
+      if (!files.length) {
+        setStatus("Dropped folder had no readable files.", "error");
+        return;
+      }
+      applyDirectoryFiles(files, directoryEntry.name);
+      return;
+    }
+
+    const zipEntry = entries.find((entry) => entry.isFile && entry.name.endsWith(".zip"));
+    if (zipEntry && zipEntry.file) {
+      zipEntry.file((file) => handleZipData(file));
+      return;
+    }
+  }
+
+  const files = Array.from(dataTransfer.files || []);
+  if (files.length === 1 && files[0].name.endsWith(".zip")) {
+    await handleZipData(files[0]);
+    return;
+  }
+
+  setStatus("Drop a .xcresult.zip or .xcresult folder.", "error");
+}
+
 async function copyOutput() {
   const text = elements.output.textContent;
   if (!text || text.startsWith("//")) {
@@ -518,6 +628,26 @@ if (elements.smokeButton) {
   elements.smokeButton.addEventListener("click", runSqliteSmokeTest);
 }
 elements.copyButton.addEventListener("click", copyOutput);
+if (elements.dropZone) {
+  elements.dropZone.addEventListener("dragenter", (event) => {
+    event.preventDefault();
+    setDropActive(true);
+  });
+  elements.dropZone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    setDropActive(true);
+  });
+  elements.dropZone.addEventListener("dragleave", (event) => {
+    if (event.target === elements.dropZone) {
+      setDropActive(false);
+    }
+  });
+  elements.dropZone.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    setDropActive(false);
+    await handleDrop(event);
+  });
+}
 
 updateBundleMeta();
 updateTestIdVisibility();
