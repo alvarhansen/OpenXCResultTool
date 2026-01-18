@@ -9,20 +9,30 @@ final class SQLiteDatabase {
     private var db: OpaquePointer?
 
     init(path: String) throws {
-        let openPath: String
-        let flags: Int32
+        var lastMessage = "Unable to open database at \(path)."
         #if os(WASI)
-        openPath = "file:\(path)?immutable=1"
-        flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI
-        #else
-        openPath = path
-        flags = SQLITE_OPEN_READONLY
-        #endif
-        if sqlite3_open_v2(openPath, &db, flags, nil) != SQLITE_OK {
-            let message = "Unable to open database at \(path): \(SQLiteDatabase.lastErrorMessage(db))"
-            sqlite3_close(db)
-            throw SQLiteError(message)
+        if let data = WasiDatabaseRegistry.data(for: path) {
+            db = try SQLiteDatabase.deserializeDatabase(data: data)
+            return
         }
+        #endif
+        for attempt in SQLiteDatabase.openAttempts(for: path) {
+            if sqlite3_open_v2(attempt.path, &db, attempt.flags, nil) == SQLITE_OK {
+                return
+            }
+            lastMessage = SQLiteDatabase.openErrorMessage(db, path: path, attempted: attempt.path)
+            sqlite3_close(db)
+            db = nil
+        }
+        #if os(WASI)
+        do {
+            db = try SQLiteDatabase.deserializeDatabase(path: path)
+            return
+        } catch {
+            lastMessage = "Unable to open database at \(path). Deserialize fallback failed: \(error)"
+        }
+        #endif
+        throw SQLiteError(lastMessage)
     }
 
     deinit {
@@ -82,6 +92,79 @@ final class SQLiteDatabase {
         }
         return "Unknown SQLite error."
     }
+
+    private struct OpenAttempt {
+        let path: String
+        let flags: Int32
+    }
+
+    private static func openAttempts(for path: String) -> [OpenAttempt] {
+        #if os(WASI)
+        let uriBase = URL(fileURLWithPath: path).absoluteString
+        return [
+            OpenAttempt(path: "\(uriBase)?mode=ro&immutable=1", flags: SQLITE_OPEN_READONLY | SQLITE_OPEN_URI),
+            OpenAttempt(path: "\(uriBase)?mode=ro", flags: SQLITE_OPEN_READONLY | SQLITE_OPEN_URI),
+            OpenAttempt(path: path, flags: SQLITE_OPEN_READONLY)
+        ]
+        #else
+        return [OpenAttempt(path: path, flags: SQLITE_OPEN_READONLY)]
+        #endif
+    }
+
+    private static func openErrorMessage(_ db: OpaquePointer?, path: String, attempted: String) -> String {
+        let errCode = db.map { sqlite3_errcode($0) } ?? 0
+        let extCode = db.map { sqlite3_extended_errcode($0) } ?? 0
+        let sysErr = db.map { sqlite3_system_errno($0) } ?? 0
+        let message = lastErrorMessage(db)
+        return "Unable to open database at \(path) (attempted \(attempted)): \(message) [err=\(errCode), xerr=\(extCode), sys=\(sysErr)]"
+    }
+
+    #if os(WASI)
+    private static func deserializeDatabase(data: Data) throws -> OpaquePointer {
+        var db: OpaquePointer?
+        if sqlite3_open_v2(":memory:", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil) != SQLITE_OK {
+            let message = "Unable to open in-memory database: \(lastErrorMessage(db))"
+            sqlite3_close(db)
+            throw SQLiteError(message)
+        }
+        guard let db else {
+            throw SQLiteError("Unable to initialize in-memory database.")
+        }
+
+        let size = data.count
+        guard let buffer = sqlite3_malloc64(UInt64(size)) else {
+            sqlite3_close(db)
+            throw SQLiteError("Unable to allocate memory for database deserialization.")
+        }
+        let target = buffer.bindMemory(to: UInt8.self, capacity: size)
+        data.withUnsafeBytes { bytes in
+            if let base = bytes.baseAddress {
+                memcpy(target, base, size)
+            }
+        }
+
+        let rc = sqlite3_deserialize(
+            db,
+            "main",
+            target,
+            sqlite3_int64(size),
+            sqlite3_int64(size),
+            UInt32(SQLITE_DESERIALIZE_FREEONCLOSE | SQLITE_DESERIALIZE_READONLY)
+        )
+        if rc != SQLITE_OK {
+            sqlite3_free(buffer)
+            let message = "Unable to deserialize database: \(lastErrorMessage(db))"
+            sqlite3_close(db)
+            throw SQLiteError(message)
+        }
+        return db
+    }
+
+    private static func deserializeDatabase(path: String) throws -> OpaquePointer {
+        let data = try Data(contentsOf: URL(fileURLWithPath: path))
+        return try deserializeDatabase(data: data)
+    }
+    #endif
 }
 
 struct SQLiteError: Error, CustomStringConvertible {

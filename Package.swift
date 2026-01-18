@@ -77,6 +77,8 @@ targets.append(
                     "-Xlinker", "--export=openxcresulttool_get_test_results_activities_json",
                     "-Xlinker", "--export=openxcresulttool_get_test_results_metrics_json",
                     "-Xlinker", "--export=openxcresulttool_get_test_results_insights_json",
+                    "-Xlinker", "--export=openxcresulttool_sqlite_smoke_test_json",
+                    "-Xlinker", "--export=openxcresulttool_register_database",
                 ],
                 .when(platforms: [.wasi])
             )

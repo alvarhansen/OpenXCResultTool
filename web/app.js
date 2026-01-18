@@ -28,6 +28,7 @@ const commandSpecs = {
   activities: { exportName: "openxcresulttool_get_test_results_activities_json", needsTestId: true },
   metrics: { exportName: "openxcresulttool_get_test_results_metrics_json", needsTestId: false, testIdOptional: true },
   insights: { exportName: "openxcresulttool_get_test_results_insights_json", needsTestId: false },
+  "sqlite-smoke": { exportName: "openxcresulttool_sqlite_smoke_test_json", needsTestId: false },
 };
 
 const state = {
@@ -245,6 +246,33 @@ function freeCString(instance, ptr) {
   }
 }
 
+function registerDatabase(instance, path, data) {
+  const register = instance.exports.openxcresulttool_register_database;
+  if (!register) {
+    return;
+  }
+  const alloc = instance.exports.openxcresulttool_alloc;
+  if (!alloc) {
+    throw new Error("openxcresulttool_alloc export is missing.");
+  }
+  const dataPtr = alloc(data.length);
+  if (!dataPtr) {
+    throw new Error("Unable to allocate database buffer.");
+  }
+  const memory = new Uint8Array(instance.exports.memory.buffer, dataPtr, data.length);
+  memory.set(data);
+
+  const pathPtr = allocCString(instance, path);
+  const ok = register(pathPtr, dataPtr, data.length);
+  freeCString(instance, pathPtr);
+  freeCString(instance, dataPtr);
+
+  if (!ok) {
+    const message = getLastError(instance) || "Unknown database registration error.";
+    throw new Error(message);
+  }
+}
+
 function getLastError(instance) {
   const errorPtr = instance.exports.openxcresulttool_last_error?.();
   if (!errorPtr) {
@@ -294,6 +322,30 @@ async function runExport() {
       const message = error instanceof Error ? error.message : String(error);
       setStatus(`JS open failed for ${databasePath}: ${message}`, "error");
       elements.output.textContent = `// Failed to run export.\n// JS open failed for ${databasePath}`;
+      return;
+    }
+    let databaseBytes = null;
+    try {
+      databaseBytes = wasmFs.fs.readFileSync(databasePath);
+      const headerText = decoder.decode(databaseBytes.subarray(0, 16));
+      if (!headerText.startsWith("SQLite format 3")) {
+        setStatus(`Database header mismatch: ${headerText}`, "error");
+        elements.output.textContent = `// Failed to run export.\n// Header: ${headerText}`;
+        return;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`Failed to read database header: ${message}`, "error");
+      elements.output.textContent = `// Failed to run export.\n// Unable to read ${databasePath}`;
+      return;
+    }
+
+    try {
+      registerDatabase(instance, databasePath, databaseBytes);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`Database registration failed: ${message}`, "error");
+      elements.output.textContent = `// Failed to run export.\n// Registration failed for ${databasePath}`;
       return;
     }
     if (databaseStat && typeof databaseStat.size === "number") {
