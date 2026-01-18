@@ -6,7 +6,7 @@ TEST_TIMEOUT ?= 30
 WASM_IMAGE ?= openxcresulttool-wasm:6.2.3
 WASM_PLATFORM ?=
 WASM_SDK_ID ?= swift-6.2.3-RELEASE_wasm
-WASM_BUILD_ARGS ?= --product OpenXCResultTool
+WASM_BUILD_ARGS ?= --target OpenXCResultTool
 
 DOCKER_PLATFORM_FLAG := $(if $(DOCKER_PLATFORM),--platform=$(DOCKER_PLATFORM),)
 DOCKER_CMD = docker run --rm $(DOCKER_PLATFORM_FLAG) -v "$(PWD)":$(WORKDIR) -w $(WORKDIR) $(DOCKER_IMAGE)
