@@ -9,7 +9,16 @@ final class SQLiteDatabase {
     private var db: OpaquePointer?
 
     init(path: String) throws {
-        if sqlite3_open_v2(path, &db, SQLITE_OPEN_READONLY, nil) != SQLITE_OK {
+        let openPath: String
+        let flags: Int32
+        #if os(WASI)
+        openPath = "file:\(path)?immutable=1"
+        flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI
+        #else
+        openPath = path
+        flags = SQLITE_OPEN_READONLY
+        #endif
+        if sqlite3_open_v2(openPath, &db, flags, nil) != SQLITE_OK {
             let message = "Unable to open database at \(path): \(SQLiteDatabase.lastErrorMessage(db))"
             sqlite3_close(db)
             throw SQLiteError(message)

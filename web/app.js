@@ -143,6 +143,7 @@ async function createRuntime() {
       wasmFs.fs.volume = wasmFs.volume;
     }
     ensureDir(wasmFs.fs, "/work");
+    ensureDir(wasmFs.fs, "/tmp");
 
     stage = "wasi-construct";
     const defaultBindings = wasiModule.defaultBindings ?? {};
@@ -151,6 +152,7 @@ async function createRuntime() {
       env: {},
       preopenDirectories: {
         "/work": "/work",
+        "/tmp": "/tmp",
       },
       bindings: {
         ...defaultBindings,
@@ -276,6 +278,27 @@ async function runExport() {
   try {
     const { instance, wasmFs } = await createRuntime();
     const bundlePath = await mountBundle(wasmFs.fs);
+    const databasePath = `${bundlePath}/database.sqlite3`;
+    let databaseStat = null;
+    try {
+      databaseStat = wasmFs.fs.statSync(databasePath);
+    } catch (error) {
+      setStatus(`Database missing in WASI FS at ${databasePath}.`, "error");
+      elements.output.textContent = `// Failed to run export.\n// Could not find ${databasePath}`;
+      return;
+    }
+    try {
+      const fd = wasmFs.fs.openSync(databasePath, "r");
+      wasmFs.fs.closeSync(fd);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`JS open failed for ${databasePath}: ${message}`, "error");
+      elements.output.textContent = `// Failed to run export.\n// JS open failed for ${databasePath}`;
+      return;
+    }
+    if (databaseStat && typeof databaseStat.size === "number") {
+      setStatus(`Database staged (${databaseStat.size} bytes).`, "info");
+    }
 
     const exportFn = instance.exports[spec.exportName];
     if (!exportFn) {
