@@ -24,7 +24,7 @@ public struct ObjectExporter {
                     withIntermediateDirectories: true
                 )
             }
-            try data.write(to: outputURL, options: [.atomic])
+            try data.writeAtomic(to: outputURL)
         case .directory:
             try FileManager.default.createDirectory(
                 at: outputURL,
@@ -53,7 +53,7 @@ public struct ObjectExporter {
                 try exportDirectory(id: refId, to: targetURL)
             case 1:
                 let data = try store.loadRawObjectData(id: refId)
-                try data.write(to: targetURL, options: [.atomic])
+                try data.writeAtomic(to: targetURL)
             default:
                 continue
             }

@@ -1,5 +1,9 @@
 import Foundation
+#if os(WASI)
+import SQLite3WASI
+#else
 import SQLite3
+#endif
 
 public struct AttachmentsExporter {
     private let context: XCResultContext
@@ -47,7 +51,7 @@ public struct AttachmentsExporter {
 
             let data = try store.loadRawObjectData(id: payloadId)
             let targetURL = outputURL.appendingPathComponent(exportedFileName)
-            try data.write(to: targetURL, options: [.atomic])
+            try data.writeAtomic(to: targetURL)
 
             let arguments = argumentsByRun[attachment.testCaseRunId] ?? []
             let manifestAttachment = AttachmentManifestAttachment(
@@ -86,7 +90,7 @@ public struct AttachmentsExporter {
         }
         encoder.outputFormatting = formatting
         let data = try encoder.encode(entries)
-        try data.write(to: manifestURL, options: [.atomic])
+        try data.writeAtomic(to: manifestURL)
     }
 
     private func loadDeviceInfo() throws -> (id: String, name: String) {

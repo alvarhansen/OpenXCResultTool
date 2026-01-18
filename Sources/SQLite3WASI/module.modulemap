@@ -1,0 +1,5 @@
+module SQLite3WASI [system] {
+    header "include/sqlite3.h"
+    link "sqlite3"
+    export *
+}

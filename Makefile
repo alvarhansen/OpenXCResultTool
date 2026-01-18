@@ -4,9 +4,11 @@ WORKDIR ?= /work
 TEST_ARGS ?=
 TEST_TIMEOUT ?= 30
 WASM_IMAGE ?= openxcresulttool-wasm:6.2.3
-WASM_PLATFORM ?=
+WASM_PLATFORM ?= linux/amd64
 WASM_SDK_ID ?= swift-6.2.3-RELEASE_wasm
 WASM_BUILD_ARGS ?= --target OpenXCResultTool
+WASM_SQLITE_VERSION ?= 3460100
+WASM_SQLITE_YEAR ?= 2024
 
 DOCKER_PLATFORM_FLAG := $(if $(DOCKER_PLATFORM),--platform=$(DOCKER_PLATFORM),)
 DOCKER_CMD = docker run --rm $(DOCKER_PLATFORM_FLAG) -v "$(PWD)":$(WORKDIR) -w $(WORKDIR) $(DOCKER_IMAGE)
@@ -15,7 +17,7 @@ WASM_PLATFORM_FLAG := $(if $(WASM_PLATFORM),--platform=$(WASM_PLATFORM),)
 WASM_CMD = docker run --rm $(WASM_PLATFORM_FLAG) -v "$(PWD)":$(WORKDIR) -w $(WORKDIR) $(WASM_IMAGE)
 WASM_BUILD_CMD = docker build $(WASM_PLATFORM_FLAG) -t $(WASM_IMAGE) -f Dockerfile.wasm .
 
-.PHONY: linux-image linux-build linux-test wasm-image wasm-build
+.PHONY: linux-image linux-build linux-test wasm-image wasm-build wasm-sqlite
 
 linux-image:
 	$(DOCKER_BUILD_CMD)
@@ -31,3 +33,6 @@ wasm-image:
 
 wasm-build:
 	$(WASM_CMD) swift build --swift-sdk $(WASM_SDK_ID) $(WASM_BUILD_ARGS)
+
+wasm-sqlite:
+	$(WASM_CMD) bash -lc "WASI_SDK_PATH=/opt/wasi-sdk SQLITE_VERSION=$(WASM_SQLITE_VERSION) SQLITE_YEAR=$(WASM_SQLITE_YEAR) ./scripts/build-sqlite-wasi.sh"

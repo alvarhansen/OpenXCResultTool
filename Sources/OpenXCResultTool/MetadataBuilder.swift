@@ -50,7 +50,7 @@ public struct MetadataBuilder {
             format: format,
             options: 0
         )
-        try data.write(to: plistURL, options: [.atomic])
+        try data.writeAtomic(to: plistURL)
     }
 
     private func readPlist(format: inout PropertyListSerialization.PropertyListFormat) throws -> [String: Any] {

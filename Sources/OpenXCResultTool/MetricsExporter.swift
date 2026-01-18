@@ -1,5 +1,9 @@
 import Foundation
+#if os(WASI)
+import SQLite3WASI
+#else
 import SQLite3
+#endif
 
 public struct MetricsExporter {
     private let context: XCResultContext
@@ -30,7 +34,7 @@ public struct MetricsExporter {
             guard let data = content.data(using: .utf8) else {
                 throw MetricsExportError("Unable to encode CSV for \(group.testIdentifier).")
             }
-            try data.write(to: csvURL, options: [.atomic])
+            try data.writeAtomic(to: csvURL)
 
             manifestEntries.append(
                 MetricsManifestEntry(
@@ -53,7 +57,7 @@ public struct MetricsExporter {
         }
         encoder.outputFormatting = formatting
         let data = try encoder.encode(entries)
-        try data.write(to: manifestURL, options: [.atomic])
+        try data.writeAtomic(to: manifestURL)
     }
 
     private func loadDestination() throws -> String {

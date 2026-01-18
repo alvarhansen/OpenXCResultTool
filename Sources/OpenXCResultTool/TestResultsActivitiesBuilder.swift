@@ -1,5 +1,9 @@
 import Foundation
+#if os(WASI)
+import SQLite3WASI
+#else
 import SQLite3
+#endif
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 

@@ -1,2 +1,9 @@
 # Store Xcode xcresult bundles in Git LFS.
 Tests/Fixtures/*.xcresult/** filter=lfs diff=lfs merge=lfs -text
+
+
+# Store .a files (static libraries) in Git LFS.
+*.a filter=lfs diff=lfs merge=lfs -text
+
+# Store WebAssembly files in Git LFS.
+*.wasm filter=lfs diff=lfs merge=lfs -text

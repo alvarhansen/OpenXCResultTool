@@ -1,5 +1,9 @@
 import Foundation
+#if os(WASI)
+import SQLite3WASI
+#else
 import SQLite3
+#endif
 
 public struct CompareBuilder {
     private let baseline: XCResultContext

@@ -1,5 +1,9 @@
 import Foundation
+#if os(WASI)
+import SQLite3WASI
+#else
 import SQLite3
+#endif
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
@@ -127,7 +131,7 @@ public struct MergeBuilder {
 
         dict["dateCreated"] = Date()
         let updated = try PropertyListSerialization.data(fromPropertyList: dict, format: format, options: 0)
-        try updated.write(to: plistURL, options: [.atomic])
+        try updated.writeAtomic(to: plistURL)
     }
 
     private func tableNames(db: OpaquePointer?) throws -> [String] {

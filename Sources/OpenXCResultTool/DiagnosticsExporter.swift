@@ -69,7 +69,7 @@ public struct DiagnosticsExporter {
                 try exportDirectory(id: refId, to: targetURL)
             case 1:
                 let data = try store.loadRawObjectData(id: refId)
-                try data.write(to: targetURL, options: [.atomic])
+                try data.writeAtomic(to: targetURL)
             default:
                 continue
             }

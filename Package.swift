@@ -5,10 +5,11 @@ import PackageDescription
 
 var targets: [Target] = []
 var coreDependencies: [Target.Dependency] = [
+    .target(name: "SQLite3", condition: .when(platforms: [.linux])),
+    .target(name: "SQLite3WASI", condition: .when(platforms: [.wasi])),
     .product(name: "libzstd", package: "zstd")
 ]
 
-#if os(Linux)
 targets.append(
     .systemLibrary(
         name: "SQLite3",
@@ -18,8 +19,20 @@ targets.append(
         ]
     )
 )
-coreDependencies.insert(.target(name: "SQLite3"), at: 0)
-#endif
+
+targets.append(
+    .target(
+        name: "SQLite3WASI",
+        path: "Sources/SQLite3WASI",
+        publicHeadersPath: "include",
+        linkerSettings: [
+            .unsafeFlags(
+                ["-L", "Sources/SQLite3WASI/lib"],
+                .when(platforms: [.wasi])
+            )
+        ]
+    )
+)
 
 targets.append(
     // Targets are the basic building blocks of a package, defining a module or a test suite.
