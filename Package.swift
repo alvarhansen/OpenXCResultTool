@@ -60,6 +60,15 @@ targets.append(
 )
 
 targets.append(
+    .executableTarget(
+        name: "OpenXCResultToolWasm",
+        dependencies: [
+            .target(name: "OpenXCResultTool")
+        ]
+    )
+)
+
+targets.append(
     .testTarget(
         name: "OpenXCResultToolTests",
         dependencies: ["OpenXCResultTool"]

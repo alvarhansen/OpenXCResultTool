@@ -10,6 +10,7 @@ This repository is a Swift Package Manager (SPM) project with a core library and
 - `swift run openxcresulttool get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id <objectId> --format json` prints a legacy object payload for debugging or reverse‑engineering.
 - `make wasm-image` builds the Swift 6.2.3 WebAssembly SDK Docker image (defaults `WASM_PLATFORM=linux/amd64` for wasi-sdk).
 - `make wasm-build` builds the core library with `--swift-sdk`; override with `WASM_SDK_ID` and `WASM_BUILD_ARGS`.
+- `make wasm-module` builds the WASM browser module (`OpenXCResultToolWasm`) with exported C functions.
 - `make wasm-sqlite` rebuilds the committed WASI SQLite artifacts; override with `WASM_SQLITE_VERSION` and `WASM_SQLITE_YEAR`.
 
 ## Coding Style & Naming Conventions
