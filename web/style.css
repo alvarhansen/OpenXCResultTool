@@ -180,6 +180,13 @@ h1 {
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
+.controls button.secondary {
+  background: transparent;
+  color: var(--accent-2);
+  border: 1px solid rgba(30, 111, 106, 0.4);
+  box-shadow: none;
+}
+
 .controls button:hover {
   transform: translateY(-1px);
   filter: brightness(1.02);

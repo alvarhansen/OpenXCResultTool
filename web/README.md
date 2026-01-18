@@ -30,4 +30,6 @@ python3 -m http.server 8080
 ## Notes
 
 - The harness uses `@wasmer/wasi`, `@wasmer/wasmfs`, and `fflate` via ESM CDN imports in `web/app.js`.
+- The browser cannot reliably open SQLite files through WASI FS, so `web/app.js` reads `database.sqlite3` into memory and registers it via `openxcresulttool_register_database`. The Swift side deserializes it into an in-memory database before running queries.
+- Use the "SQLite smoke test" button to verify the registry path and database header before running larger exports.
 - For large bundles, consider a real WASI runtime and file streaming instead of browser memory.

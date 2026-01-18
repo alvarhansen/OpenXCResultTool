@@ -16,6 +16,7 @@ const elements = {
   testIdInput: document.getElementById("test-id"),
   compactToggle: document.getElementById("compact-toggle"),
   runButton: document.getElementById("run-button"),
+  smokeButton: document.getElementById("smoke-button"),
   status: document.getElementById("status"),
   output: document.getElementById("output"),
   copyButton: document.getElementById("copy-button"),
@@ -283,6 +284,40 @@ function getLastError(instance) {
   return message;
 }
 
+async function prepareDatabase(instance, wasmFs) {
+  const bundlePath = await mountBundle(wasmFs.fs);
+  const databasePath = `${bundlePath}/database.sqlite3`;
+
+  try {
+    wasmFs.fs.statSync(databasePath);
+  } catch (error) {
+    throw new Error(`Database missing in WASI FS at ${databasePath}.`);
+  }
+
+  try {
+    const fd = wasmFs.fs.openSync(databasePath, "r");
+    wasmFs.fs.closeSync(fd);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`JS open failed for ${databasePath}: ${message}`);
+  }
+
+  let databaseBytes;
+  try {
+    databaseBytes = wasmFs.fs.readFileSync(databasePath);
+    const headerText = decoder.decode(databaseBytes.subarray(0, 16));
+    if (!headerText.startsWith("SQLite format 3")) {
+      throw new Error(`Database header mismatch: ${headerText}`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to read database header: ${message}`);
+  }
+
+  registerDatabase(instance, databasePath, databaseBytes);
+  return { bundlePath, databasePath, databaseBytes };
+}
+
 async function runExport() {
   if (!state.bundleRoot || state.fileCount === 0) {
     setStatus("Select a .xcresult folder or zip before running.", "error");
@@ -301,55 +336,16 @@ async function runExport() {
 
   setStatus("Loading WASM runtime...", "info");
   elements.runButton.disabled = true;
+  if (elements.smokeButton) {
+    elements.smokeButton.disabled = true;
+  }
   elements.output.textContent = "// Running...";
 
   try {
     const { instance, wasmFs } = await createRuntime();
-    const bundlePath = await mountBundle(wasmFs.fs);
-    const databasePath = `${bundlePath}/database.sqlite3`;
-    let databaseStat = null;
-    try {
-      databaseStat = wasmFs.fs.statSync(databasePath);
-    } catch (error) {
-      setStatus(`Database missing in WASI FS at ${databasePath}.`, "error");
-      elements.output.textContent = `// Failed to run export.\n// Could not find ${databasePath}`;
-      return;
-    }
-    try {
-      const fd = wasmFs.fs.openSync(databasePath, "r");
-      wasmFs.fs.closeSync(fd);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setStatus(`JS open failed for ${databasePath}: ${message}`, "error");
-      elements.output.textContent = `// Failed to run export.\n// JS open failed for ${databasePath}`;
-      return;
-    }
-    let databaseBytes = null;
-    try {
-      databaseBytes = wasmFs.fs.readFileSync(databasePath);
-      const headerText = decoder.decode(databaseBytes.subarray(0, 16));
-      if (!headerText.startsWith("SQLite format 3")) {
-        setStatus(`Database header mismatch: ${headerText}`, "error");
-        elements.output.textContent = `// Failed to run export.\n// Header: ${headerText}`;
-        return;
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setStatus(`Failed to read database header: ${message}`, "error");
-      elements.output.textContent = `// Failed to run export.\n// Unable to read ${databasePath}`;
-      return;
-    }
-
-    try {
-      registerDatabase(instance, databasePath, databaseBytes);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setStatus(`Database registration failed: ${message}`, "error");
-      elements.output.textContent = `// Failed to run export.\n// Registration failed for ${databasePath}`;
-      return;
-    }
-    if (databaseStat && typeof databaseStat.size === "number") {
-      setStatus(`Database staged (${databaseStat.size} bytes).`, "info");
+    const { bundlePath, databaseBytes } = await prepareDatabase(instance, wasmFs);
+    if (databaseBytes && typeof databaseBytes.length === "number") {
+      setStatus(`Database staged (${databaseBytes.length} bytes).`, "info");
     }
 
     const exportFn = instance.exports[spec.exportName];
@@ -392,6 +388,53 @@ async function runExport() {
     setStatus(message, "error");
   } finally {
     elements.runButton.disabled = false;
+    if (elements.smokeButton) {
+      elements.smokeButton.disabled = false;
+    }
+  }
+}
+
+async function runSqliteSmokeTest() {
+  if (!state.bundleRoot || state.fileCount === 0) {
+    setStatus("Select a .xcresult folder or zip before running.", "error");
+    return;
+  }
+
+  setStatus("Running SQLite smoke test...", "info");
+  elements.runButton.disabled = true;
+  if (elements.smokeButton) {
+    elements.smokeButton.disabled = true;
+  }
+  elements.output.textContent = "// Running SQLite smoke test...";
+
+  try {
+    const { instance, wasmFs } = await createRuntime();
+    const { bundlePath } = await prepareDatabase(instance, wasmFs);
+    const exportFn = instance.exports.openxcresulttool_sqlite_smoke_test_json;
+    if (!exportFn) {
+      throw new Error("Missing export: openxcresulttool_sqlite_smoke_test_json");
+    }
+    const pathPtr = allocCString(instance, bundlePath);
+    const compactFlag = elements.compactToggle.checked ? 1 : 0;
+    const resultPtr = exportFn(pathPtr, compactFlag);
+    freeCString(instance, pathPtr);
+    if (!resultPtr) {
+      const error = getLastError(instance) || "Unknown error";
+      throw new Error(error);
+    }
+    const json = readCString(instance, resultPtr);
+    freeCString(instance, resultPtr);
+    elements.output.textContent = json;
+    setStatus("SQLite smoke test complete.", "success");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    elements.output.textContent = "// Failed to run sqlite smoke test.";
+    setStatus(message, "error");
+  } finally {
+    elements.runButton.disabled = false;
+    if (elements.smokeButton) {
+      elements.smokeButton.disabled = false;
+    }
   }
 }
 
@@ -471,6 +514,9 @@ if (elements.zipInput) {
 }
 elements.commandSelect.addEventListener("change", updateTestIdVisibility);
 elements.runButton.addEventListener("click", runExport);
+if (elements.smokeButton) {
+  elements.smokeButton.addEventListener("click", runSqliteSmokeTest);
+}
 elements.copyButton.addEventListener("click", copyOutput);
 
 updateBundleMeta();
