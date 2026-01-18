@@ -18,6 +18,15 @@ public func openxcresulttool_free(_ pointer: UnsafeMutablePointer<CChar>?) {
 }
 
 @MainActor
+@_cdecl("openxcresulttool_alloc")
+public func openxcresulttool_alloc(_ size: Int) -> UnsafeMutablePointer<CChar>? {
+    guard size > 0 else {
+        return nil
+    }
+    return UnsafeMutablePointer<CChar>.allocate(capacity: size)
+}
+
+@MainActor
 @_cdecl("openxcresulttool_last_error")
 public func openxcresulttool_last_error() -> UnsafeMutablePointer<CChar>? {
     guard let message = lastErrorMessage else {

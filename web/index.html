@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenXCResultTool WASM Harness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-orbit" aria-hidden="true"></div>
+  <main class="page">
+    <header class="hero" data-reveal>
+      <p class="eyebrow">Browser Preview</p>
+      <h1>OpenXCResultTool WASM Harness</h1>
+      <p class="subhead">Load an <span class="chip">.xcresult</span> bundle in your browser, mount it into a virtual filesystem, and call the WASM exports directly.</p>
+    </header>
+
+    <section class="grid" data-reveal>
+      <article class="card">
+        <h2>1. Load Bundle</h2>
+        <p>Select the <code>.xcresult</code> folder (not a zip). We write the bundle into a virtual FS at <code>/work/&lt;bundle&gt;.xcresult</code>.</p>
+        <label class="drop">
+          <input id="xcresult-input" type="file" webkitdirectory directory multiple>
+          <span>Choose .xcresult folder</span>
+        </label>
+        <div class="meta">
+          <span id="bundle-name">No bundle loaded.</span>
+          <span id="bundle-count">0 files</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>2. Select Command</h2>
+        <p>Pick an export and run it. Test-related queries accept an optional test identifier.</p>
+        <div class="controls">
+          <label>
+            <span>Command</span>
+            <select id="command-select">
+              <option value="summary">test-results summary</option>
+              <option value="tests">test-results tests</option>
+              <option value="test-details">test-results test-details</option>
+              <option value="activities">test-results activities</option>
+              <option value="metrics">test-results metrics</option>
+              <option value="insights">test-results insights</option>
+            </select>
+          </label>
+          <label id="test-id-field">
+            <span>Test Id</span>
+            <input id="test-id" type="text" placeholder="Optional for metrics, required for details/activities">
+          </label>
+          <label class="toggle">
+            <input id="compact-toggle" type="checkbox">
+            <span>Compact JSON</span>
+          </label>
+          <button id="run-button" type="button">Run export</button>
+        </div>
+        <div class="status" id="status">Waiting for input.</div>
+      </article>
+    </section>
+
+    <section class="output" data-reveal>
+      <div class="output-head">
+        <h2>Output</h2>
+        <button id="copy-button" type="button">Copy JSON</button>
+      </div>
+      <pre id="output">// Output will appear here.</pre>
+    </section>
+
+    <section class="footnote" data-reveal>
+      <h3>Notes</h3>
+      <ul>
+        <li>Large bundles can be slow to upload and parse in-browser.</li>
+        <li>This harness expects <code>web/openxcresulttool.wasm</code> to exist.</li>
+        <li>Use a local web server (not file://) so WASM imports can load.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

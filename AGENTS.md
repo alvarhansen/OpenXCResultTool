@@ -12,6 +12,7 @@ This repository is a Swift Package Manager (SPM) project with a core library and
 - `make wasm-build` builds the core library with `--swift-sdk`; override with `WASM_SDK_ID` and `WASM_BUILD_ARGS`.
 - `make wasm-module` builds the WASM browser module (`OpenXCResultToolWasm`) with exported C functions.
 - `make wasm-sqlite` rebuilds the committed WASI SQLite artifacts; override with `WASM_SQLITE_VERSION` and `WASM_SQLITE_YEAR`.
+- `web/README.md` documents running the browser harness once you copy `OpenXCResultToolWasm.wasm` into `web/`.
 
 ## Coding Style & Naming Conventions
 Keep indentation at 4 spaces, matching the existing source file. Follow Swift API Design Guidelines: use UpperCamelCase for types (`OpenXCResultTool`), lowerCamelCase for functions and variables, and keep filenames aligned with their primary type. There is no formatter configured in the repo; if you introduce one, update this guide and the build instructions. Keep the entry point in a small `@main` type and move non-trivial logic into separate files for readability.
