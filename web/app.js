@@ -1,5 +1,5 @@
-import { WASI } from "https://esm.sh/@wasmer/wasi@1.2.2?bundle";
-import { WasmFs } from "https://esm.sh/@wasmer/wasmfs@0.12.0?bundle";
+import * as wasiModule from "https://esm.sh/@wasmer/wasi@1.2.2?bundle";
+import * as wasmfsModule from "https://esm.sh/@wasmer/wasmfs@0.12.0?bundle";
 import path from "https://esm.sh/path-browserify@1.0.1?bundle";
 
 const encoder = new TextEncoder();
@@ -32,6 +32,8 @@ const state = {
   files: [],
   bundleRoot: null,
 };
+
+let wasiReady = false;
 
 function setStatus(message, tone = "info") {
   elements.status.textContent = message;
@@ -66,6 +68,24 @@ function ensureDir(fs, dirPath) {
 }
 
 async function createRuntime() {
+  if (!wasiReady) {
+    const initCandidates = [
+      wasiModule.default,
+      wasiModule.init,
+      wasmfsModule.default,
+      wasmfsModule.init,
+    ].filter((candidate) => typeof candidate === "function");
+    for (const init of initCandidates) {
+      await init();
+    }
+    wasiReady = true;
+  }
+
+  const WasmFs = wasmfsModule.WasmFs;
+  const WASI = wasiModule.WASI;
+  if (!WasmFs || !WASI) {
+    throw new Error("WASI runtime failed to load. Check the CDN imports.");
+  }
   const wasmFs = new WasmFs();
   ensureDir(wasmFs.fs, "/work");
 
@@ -83,7 +103,11 @@ async function createRuntime() {
     },
   });
 
-  const module = await WebAssembly.compileStreaming(fetch("openxcresulttool.wasm"));
+  const wasmResponse = await fetch("openxcresulttool.wasm");
+  if (!wasmResponse.ok) {
+    throw new Error("openxcresulttool.wasm not found. Copy it into web/ before running.");
+  }
+  const module = await WebAssembly.compileStreaming(wasmResponse);
   const instance = await WebAssembly.instantiate(module, wasi.getImports(module));
 
   if (typeof wasi.initialize === "function") {
