@@ -1,0 +1,3 @@
+FROM ghcr.io/swiftwasm/swiftwasm:latest
+
+WORKDIR /work

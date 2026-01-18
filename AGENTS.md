@@ -8,6 +8,8 @@ This repository is a Swift Package Manager (SPM) project with a core library and
 - `swift run openxcresulttool` builds (if needed) and runs the CLI executable.
 - `swift test` runs the XCTest suite in `Tests/OpenXCResultToolTests/`.
 - `swift run openxcresulttool get object --legacy --path Tests/Fixtures/<bundle>.xcresult --id <objectId> --format json` prints a legacy object payload for debugging or reverse‑engineering.
+- `make wasm-image` builds the SwiftWasm Docker image.
+- `make wasm-build` builds the core library for WASI (`wasm32-unknown-wasi`); override with `WASM_TARGET` and `WASM_BUILD_ARGS`.
 
 ## Coding Style & Naming Conventions
 Keep indentation at 4 spaces, matching the existing source file. Follow Swift API Design Guidelines: use UpperCamelCase for types (`OpenXCResultTool`), lowerCamelCase for functions and variables, and keep filenames aligned with their primary type. There is no formatter configured in the repo; if you introduce one, update this guide and the build instructions. Keep the entry point in a small `@main` type and move non-trivial logic into separate files for readability.
