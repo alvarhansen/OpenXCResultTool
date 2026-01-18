@@ -120,6 +120,14 @@ h1 {
   background: rgba(255, 255, 255, 0.6);
 }
 
+.drop.alt {
+  border-color: rgba(212, 107, 45, 0.35);
+}
+
+.drop.alt:hover {
+  border-color: var(--accent);
+}
+
 .drop:hover {
   transform: translateY(-2px);
   border-color: var(--accent-2);

@@ -9,10 +9,7 @@ final class SQLiteDatabase {
     private var db: OpaquePointer?
 
     init(path: String) throws {
-        if !FileManager.default.fileExists(atPath: path) {
-            throw SQLiteError("Database not found at \(path).")
-        }
-        if sqlite3_open(path, &db) != SQLITE_OK {
+        if sqlite3_open_v2(path, &db, SQLITE_OPEN_READONLY, nil) != SQLITE_OK {
             let message = "Unable to open database at \(path): \(SQLiteDatabase.lastErrorMessage(db))"
             sqlite3_close(db)
             throw SQLiteError(message)

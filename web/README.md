@@ -15,7 +15,7 @@ make wasm-module
 2. Copy the module into this folder:
 
 ```
-cp .build/wasm32-unknown-wasi/debug/OpenXCResultToolWasm.wasm web/openxcresulttool.wasm
+cp .build/wasm32-unknown-wasip1/debug/openxcresulttool-wasm.wasm web/openxcresulttool.wasm
 ```
 
 3. Serve the folder (file:// will not work with WASM imports):
@@ -25,9 +25,9 @@ cd web
 python3 -m http.server 8080
 ```
 
-4. Open `http://localhost:8080` and select a `.xcresult` folder.
+4. Open `http://localhost:8080` and select a `.xcresult` folder, or upload a `.xcresult.zip`.
 
 ## Notes
 
-- The harness uses `@wasmer/wasi` and `@wasmer/wasmfs` via ESM CDN imports in `web/app.js`.
+- The harness uses `@wasmer/wasi`, `@wasmer/wasmfs`, and `fflate` via ESM CDN imports in `web/app.js`.
 - For large bundles, consider a real WASI runtime and file streaming instead of browser memory.

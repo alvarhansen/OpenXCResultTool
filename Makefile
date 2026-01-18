@@ -7,7 +7,7 @@ WASM_IMAGE ?= openxcresulttool-wasm:6.2.3
 WASM_PLATFORM ?= linux/amd64
 WASM_SDK_ID ?= swift-6.2.3-RELEASE_wasm
 WASM_BUILD_ARGS ?= --target OpenXCResultTool
-WASM_MODULE_TARGET ?= OpenXCResultToolWasm
+WASM_MODULE_PRODUCT ?= openxcresulttool-wasm
 WASM_SQLITE_VERSION ?= 3460100
 WASM_SQLITE_YEAR ?= 2024
 
@@ -36,7 +36,7 @@ wasm-build:
 	$(WASM_CMD) swift build --swift-sdk $(WASM_SDK_ID) $(WASM_BUILD_ARGS)
 
 wasm-module:
-	$(WASM_CMD) swift build --swift-sdk $(WASM_SDK_ID) --target $(WASM_MODULE_TARGET)
+	$(WASM_CMD) swift build --swift-sdk $(WASM_SDK_ID) --product $(WASM_MODULE_PRODUCT)
 
 wasm-sqlite:
 	$(WASM_CMD) bash -lc "WASI_SDK_PATH=/opt/wasi-sdk SQLITE_VERSION=$(WASM_SQLITE_VERSION) SQLITE_YEAR=$(WASM_SQLITE_YEAR) ./scripts/build-sqlite-wasi.sh"

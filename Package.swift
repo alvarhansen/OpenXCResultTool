@@ -64,6 +64,22 @@ targets.append(
         name: "OpenXCResultToolWasm",
         dependencies: [
             .target(name: "OpenXCResultTool")
+        ],
+        linkerSettings: [
+            .unsafeFlags(
+                [
+                    "-Xlinker", "--export=openxcresulttool_alloc",
+                    "-Xlinker", "--export=openxcresulttool_free",
+                    "-Xlinker", "--export=openxcresulttool_last_error",
+                    "-Xlinker", "--export=openxcresulttool_get_test_results_summary_json",
+                    "-Xlinker", "--export=openxcresulttool_get_test_results_tests_json",
+                    "-Xlinker", "--export=openxcresulttool_get_test_results_test_details_json",
+                    "-Xlinker", "--export=openxcresulttool_get_test_results_activities_json",
+                    "-Xlinker", "--export=openxcresulttool_get_test_results_metrics_json",
+                    "-Xlinker", "--export=openxcresulttool_get_test_results_insights_json",
+                ],
+                .when(platforms: [.wasi])
+            )
         ]
     )
 )
@@ -79,7 +95,8 @@ let package = Package(
     name: "OpenXCResultTool",
     products: [
         .library(name: "OpenXCResultTool", targets: ["OpenXCResultTool"]),
-        .executable(name: "openxcresulttool", targets: ["OpenXCResultToolCLI"])
+        .executable(name: "openxcresulttool", targets: ["OpenXCResultToolCLI"]),
+        .executable(name: "openxcresulttool-wasm", targets: ["OpenXCResultToolWasm"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),

@@ -1,5 +1,6 @@
 import * as wasiModule from "https://esm.sh/@wasmer/wasi@1.2.2?bundle";
 import * as wasmfsModule from "https://esm.sh/@wasmer/wasmfs@0.12.0?bundle";
+import { unzipSync } from "https://esm.sh/fflate@0.8.2?bundle";
 import path from "https://esm.sh/path-browserify@1.0.1?bundle";
 
 const encoder = new TextEncoder();
@@ -7,6 +8,7 @@ const decoder = new TextDecoder();
 
 const elements = {
   input: document.getElementById("xcresult-input"),
+  zipInput: document.getElementById("xcresult-zip-input"),
   bundleName: document.getElementById("bundle-name"),
   bundleCount: document.getElementById("bundle-count"),
   commandSelect: document.getElementById("command-select"),
@@ -29,8 +31,11 @@ const commandSpecs = {
 };
 
 const state = {
+  source: "none",
   files: [],
+  entries: [],
   bundleRoot: null,
+  fileCount: 0,
 };
 
 let wasiReady = false;
@@ -43,7 +48,7 @@ function setStatus(message, tone = "info") {
 function updateBundleMeta() {
   const name = state.bundleRoot ? state.bundleRoot : "No bundle loaded.";
   elements.bundleName.textContent = name;
-  elements.bundleCount.textContent = `${state.files.length} files`;
+  elements.bundleCount.textContent = `${state.fileCount} files`;
 }
 
 function updateTestIdVisibility() {
@@ -67,74 +72,144 @@ function ensureDir(fs, dirPath) {
   }
 }
 
-async function createRuntime() {
-  if (!wasiReady) {
-    const initCandidates = [
-      wasiModule.default,
-      wasiModule.init,
-      wasmfsModule.default,
-      wasmfsModule.init,
-    ].filter((candidate) => typeof candidate === "function");
-    for (const init of initCandidates) {
-      await init();
-    }
-    wasiReady = true;
-  }
-
-  const WasmFs = wasmfsModule.WasmFs;
-  const WASI = wasiModule.WASI;
-  if (!WasmFs || !WASI) {
-    throw new Error("WASI runtime failed to load. Check the CDN imports.");
-  }
-  const wasmFs = new WasmFs();
-  ensureDir(wasmFs.fs, "/work");
-
-  const defaultBindings = WASI.defaultBindings ?? {};
-  const wasi = new WASI({
-    args: [],
-    env: {},
-    preopenDirectories: {
-      "/work": "/work",
-    },
-    bindings: {
-      ...defaultBindings,
-      fs: wasmFs.fs,
-      path,
-    },
-  });
-
-  const wasmResponse = await fetch("openxcresulttool.wasm");
-  if (!wasmResponse.ok) {
-    throw new Error("openxcresulttool.wasm not found. Copy it into web/ before running.");
-  }
-  const module = await WebAssembly.compileStreaming(wasmResponse);
-  const instance = await WebAssembly.instantiate(module, wasi.getImports(module));
-
-  if (typeof wasi.initialize === "function") {
-    wasi.initialize(instance);
-  } else if (typeof wasi.start === "function") {
-    try {
-      wasi.start(instance);
-    } catch (error) {
-      const message = String(error);
-      if (!message.includes("exit code: 0")) {
-        console.warn(error);
-      }
-    }
-  }
-
-  return { instance, wasmFs };
+function resetState() {
+  state.source = "none";
+  state.files = [];
+  state.entries = [];
+  state.bundleRoot = null;
+  state.fileCount = 0;
+  updateBundleMeta();
 }
 
-async function mountBundle(fs, files, bundleRoot) {
-  for (const file of files) {
-    const relativePath = file.webkitRelativePath || file.name;
-    const targetPath = `/work/${relativePath}`;
-    ensureDir(fs, path.dirname(targetPath));
-    const data = new Uint8Array(await file.arrayBuffer());
-    fs.writeFileSync(targetPath, data);
+function isIgnoredZipEntry(name) {
+  if (name.endsWith("/")) {
+    return true;
   }
-  return `/work/${bundleRoot}`;
+  if (name.startsWith("__MACOSX/") || name.includes("/__MACOSX/")) {
+    return true;
+  }
+  if (name.endsWith(".DS_Store")) {
+    return true;
+  }
+  const parts = name.split("/");
+  return parts.some((part) => part.startsWith("._"));
+}
+
+function detectBundleRoot(paths) {
+  if (!paths.length) {
+    return null;
+  }
+  const roots = new Set(paths.map((name) => name.split("/")[0]).filter(Boolean));
+  if (roots.size !== 1) {
+    return null;
+  }
+  const [candidate] = roots;
+  return candidate.endsWith(".xcresult") ? candidate : null;
+}
+
+function normalizeZipEntries(zipEntries) {
+  const files = Object.keys(zipEntries).filter((name) => !isIgnoredZipEntry(name));
+  const rootCandidate = detectBundleRoot(files);
+  const bundleRoot = rootCandidate ?? "bundle.xcresult";
+  const entries = files.map((name) => {
+    const normalized = rootCandidate ? name : `${bundleRoot}/${name}`;
+    return { path: normalized, data: zipEntries[name] };
+  });
+  return { bundleRoot, entries, fileCount: entries.length };
+}
+
+async function createRuntime() {
+  let stage = "wasi-init";
+  try {
+    if (!wasiReady) {
+      const init = wasiModule.init ?? wasiModule.default;
+      if (typeof init === "function") {
+        await init();
+      }
+      wasiReady = true;
+    }
+
+    stage = "bindings";
+    const WasmFs = wasmfsModule.WasmFs;
+    const WASI = wasiModule.WASI;
+    if (!WasmFs || !WASI) {
+      throw new Error("WASI runtime failed to load. Check the CDN imports.");
+    }
+    const wasmFs = new WasmFs();
+    if (!wasmFs.fs) {
+      throw new Error("WASI filesystem failed to initialize.");
+    }
+    if (!("volume" in wasmFs.fs)) {
+      wasmFs.fs.volume = wasmFs.volume;
+    }
+    ensureDir(wasmFs.fs, "/work");
+
+    stage = "wasi-construct";
+    const defaultBindings = wasiModule.defaultBindings ?? {};
+    const wasi = new WASI({
+      args: [],
+      env: {},
+      preopenDirectories: {
+        "/work": "/work",
+      },
+      bindings: {
+        ...defaultBindings,
+        fs: wasmFs.fs,
+        path,
+      },
+    });
+
+    stage = "wasm-fetch";
+    const wasmResponse = await fetch("openxcresulttool.wasm");
+    if (!wasmResponse.ok) {
+      throw new Error("openxcresulttool.wasm not found. Copy it into web/ before running.");
+    }
+
+    stage = "wasm-instantiate";
+    const module = await WebAssembly.compileStreaming(wasmResponse);
+    const instance = await WebAssembly.instantiate(module, wasi.getImports(module));
+
+    stage = "wasi-start";
+    if (typeof wasi.initialize === "function") {
+      wasi.initialize(instance);
+    } else if (typeof wasi.start === "function") {
+      try {
+        wasi.start(instance);
+      } catch (error) {
+        const message = String(error);
+        if (!message.includes("exit code: 0")) {
+          console.warn(error);
+        }
+      }
+    }
+
+    return { instance, wasmFs };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${stage}: ${message}`);
+  }
+}
+
+async function mountBundle(fs) {
+  if (state.source === "directory") {
+    for (const file of state.files) {
+      const relativePath = file.webkitRelativePath || file.name;
+      const targetPath = `/work/${relativePath}`;
+      ensureDir(fs, path.dirname(targetPath));
+      const data = new Uint8Array(await file.arrayBuffer());
+      fs.writeFileSync(targetPath, data);
+    }
+    return `/work/${state.bundleRoot}`;
+  }
+  if (state.source === "zip") {
+    for (const entry of state.entries) {
+      const targetPath = `/work/${entry.path}`;
+      ensureDir(fs, path.dirname(targetPath));
+      fs.writeFileSync(targetPath, entry.data);
+    }
+    return `/work/${state.bundleRoot}`;
+  }
+  throw new Error("No bundle loaded.");
 }
 
 function allocCString(instance, value) {
@@ -179,8 +254,8 @@ function getLastError(instance) {
 }
 
 async function runExport() {
-  if (!state.files.length || !state.bundleRoot) {
-    setStatus("Select a .xcresult folder before running.", "error");
+  if (!state.bundleRoot || state.fileCount === 0) {
+    setStatus("Select a .xcresult folder or zip before running.", "error");
     return;
   }
 
@@ -200,7 +275,7 @@ async function runExport() {
 
   try {
     const { instance, wasmFs } = await createRuntime();
-    const bundlePath = await mountBundle(wasmFs.fs, state.files, state.bundleRoot);
+    const bundlePath = await mountBundle(wasmFs.fs);
 
     const exportFn = instance.exports[spec.exportName];
     if (!exportFn) {
@@ -248,19 +323,61 @@ async function runExport() {
 function handleFiles(event) {
   const files = Array.from(event.target.files || []);
   if (!files.length) {
-    state.files = [];
-    state.bundleRoot = null;
-    updateBundleMeta();
+    resetState();
     return;
   }
 
   const samplePath = files[0].webkitRelativePath || files[0].name;
   const rootName = samplePath.split("/")[0] || "bundle.xcresult";
 
+  state.source = "directory";
   state.files = files;
+  state.entries = [];
   state.bundleRoot = rootName;
+  state.fileCount = files.length;
+  if (elements.zipInput) {
+    elements.zipInput.value = "";
+  }
   updateBundleMeta();
   setStatus("Bundle staged. Ready to run.", "success");
+}
+
+async function handleZipFile(event) {
+  const [file] = Array.from(event.target.files || []);
+  if (!file) {
+    if (state.source === "zip") {
+      resetState();
+    }
+    return;
+  }
+
+  setStatus("Unpacking zip...", "info");
+  let entries;
+  try {
+    const data = new Uint8Array(await file.arrayBuffer());
+    entries = unzipSync(data);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`Failed to unzip: ${message}`, "error");
+    return;
+  }
+
+  const normalized = normalizeZipEntries(entries);
+  if (normalized.fileCount === 0) {
+    setStatus("Zip did not contain readable files.", "error");
+    return;
+  }
+
+  state.source = "zip";
+  state.files = [];
+  state.entries = normalized.entries;
+  state.bundleRoot = normalized.bundleRoot;
+  state.fileCount = normalized.fileCount;
+  if (elements.input) {
+    elements.input.value = "";
+  }
+  updateBundleMeta();
+  setStatus("Zip staged. Ready to run.", "success");
 }
 
 async function copyOutput() {
@@ -274,6 +391,9 @@ async function copyOutput() {
 }
 
 elements.input.addEventListener("change", handleFiles);
+if (elements.zipInput) {
+  elements.zipInput.addEventListener("change", handleZipFile);
+}
 elements.commandSelect.addEventListener("change", updateTestIdVisibility);
 elements.runButton.addEventListener("click", runExport);
 elements.copyButton.addEventListener("click", copyOutput);
