@@ -101,7 +101,7 @@ const commandSpecs = {
     action: "download",
     downloadSignature: "path+output+testId",
     outputName: "metrics",
-    requiresInfoPlist: true,
+    useFileRegistry: true,
   },
   "export-object": {
     exportName: "openxcresulttool_export_object",
