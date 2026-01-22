@@ -185,6 +185,15 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
+  line-height: 1;
+}
+
+.controls label.toggle input {
+  margin: 0;
+}
+
+.controls label.toggle span {
+  line-height: 1.2;
 }
 
 .controls input,
