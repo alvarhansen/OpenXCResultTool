@@ -159,6 +159,31 @@ public func openxcresulttool_compare_json(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_export_diagnostics")
+public func openxcresulttool_export_diagnostics(
+    _ pathPointer: UnsafePointer<CChar>?,
+    _ outputPointer: UnsafePointer<CChar>?
+) -> Bool {
+    guard let path = optionalString(from: pathPointer) else {
+        lastErrorMessage = "path is required"
+        return false
+    }
+    guard let outputPath = optionalString(from: outputPointer) else {
+        lastErrorMessage = "output path is required"
+        return false
+    }
+    do {
+        let exporter = try DiagnosticsExporter(xcresultPath: path)
+        try exporter.export(to: outputPath)
+        lastErrorMessage = nil
+        return true
+    } catch {
+        lastErrorMessage = String(describing: error)
+        return false
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,

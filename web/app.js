@@ -1,6 +1,6 @@
 import * as wasiModule from "https://esm.sh/@wasmer/wasi@1.2.2?bundle";
 import * as wasmfsModule from "https://esm.sh/@wasmer/wasmfs@0.12.0?bundle";
-import { unzipSync } from "https://esm.sh/fflate@0.8.2?bundle";
+import { unzipSync, zipSync } from "https://esm.sh/fflate@0.8.2?bundle";
 import path from "https://esm.sh/path-browserify@1.0.1?bundle";
 
 const encoder = new TextEncoder();
@@ -66,6 +66,12 @@ const commandSpecs = {
     exportName: "openxcresulttool_compare_json",
     needsTestId: false,
     requiresCompare: true,
+  },
+  "export-diagnostics": {
+    exportName: "openxcresulttool_export_diagnostics",
+    needsTestId: false,
+    action: "download",
+    outputName: "diagnostics",
   },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
@@ -383,6 +389,60 @@ async function prepareDatabase(instance, wasmFs, targetState = state, mountRoot 
   return { bundlePath, databasePath, databaseBytes };
 }
 
+function normalizeZipPath(value) {
+  return value.split(path.sep).join("/");
+}
+
+function buildZipFromWasm(fs, rootPath, zipRootName) {
+  const entries = {};
+  let fileCount = 0;
+
+  const stat = fs.statSync(rootPath);
+  if (stat.isDirectory()) {
+    const walk = (currentPath) => {
+      const names = fs.readdirSync(currentPath);
+      for (const name of names) {
+        if (name === "." || name === "..") {
+          continue;
+        }
+        const fullPath = path.join(currentPath, name);
+        const itemStat = fs.statSync(fullPath);
+        if (itemStat.isDirectory()) {
+          walk(fullPath);
+        } else {
+          const relative = normalizeZipPath(path.relative(rootPath, fullPath));
+          const zipPath = zipRootName ? `${zipRootName}/${relative}` : relative;
+          entries[zipPath] = fs.readFileSync(fullPath);
+          fileCount += 1;
+        }
+      }
+    };
+    walk(rootPath);
+  } else {
+    const baseName = path.basename(rootPath);
+    const zipPath = zipRootName ? `${zipRootName}/${baseName}` : baseName;
+    entries[zipPath] = fs.readFileSync(rootPath);
+    fileCount = 1;
+  }
+
+  if (!fileCount) {
+    throw new Error("No exported files found.");
+  }
+
+  const bytes = zipSync(entries, { level: 6 });
+  return { bytes, fileCount };
+}
+
+function downloadZip(bytes, filename) {
+  const blob = new Blob([bytes], { type: "application/zip" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 async function runExport() {
   const command = elements.commandSelect.value;
   const spec = commandSpecs[command];
@@ -395,6 +455,11 @@ async function runExport() {
 
   if (command === "compare") {
     await runCompare();
+    return;
+  }
+
+  if (spec.action === "download") {
+    await runDownloadExport(spec);
     return;
   }
 
@@ -474,6 +539,59 @@ async function runExport() {
 
     elements.output.textContent = json;
     setStatus("Export complete.", "success");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    elements.output.textContent = "// Failed to run export.";
+    setStatus(message, "error");
+  } finally {
+    elements.runButton.disabled = false;
+    if (elements.smokeButton) {
+      elements.smokeButton.disabled = false;
+    }
+  }
+}
+
+async function runDownloadExport(spec) {
+  if (!state.bundleRoot || state.fileCount === 0) {
+    setStatus("Select a .xcresult folder or zip before running.", "error");
+    return;
+  }
+
+  setStatus("Loading WASM runtime...", "info");
+  elements.runButton.disabled = true;
+  if (elements.smokeButton) {
+    elements.smokeButton.disabled = true;
+  }
+  elements.output.textContent = "// Running export...";
+
+  try {
+    const { instance, wasmFs } = await createRuntime();
+    const { bundlePath } = await prepareDatabase(instance, wasmFs);
+    const exportFn = instance.exports[spec.exportName];
+    if (!exportFn) {
+      throw new Error(`Missing export: ${spec.exportName}`);
+    }
+
+    const exportRoot = "/tmp/export";
+    ensureDir(wasmFs.fs, exportRoot);
+    const stamp = Date.now();
+    const exportName = `${spec.outputName}-${stamp}`;
+    const outputPath = `${exportRoot}/${exportName}`;
+    const pathPtr = allocCString(instance, bundlePath);
+    const outputPtr = allocCString(instance, outputPath);
+    const ok = exportFn(pathPtr, outputPtr);
+    freeCString(instance, pathPtr);
+    freeCString(instance, outputPtr);
+
+    if (!ok) {
+      const error = getLastError(instance) || "Unknown error";
+      throw new Error(error);
+    }
+
+    const { bytes, fileCount } = buildZipFromWasm(wasmFs.fs, outputPath, exportName);
+    downloadZip(bytes, `${exportName}.zip`);
+    elements.output.textContent = `// Exported ${fileCount} files to ${exportName}.zip`;
+    setStatus("Export complete. Download should start shortly.", "success");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     elements.output.textContent = "// Failed to run export.";
