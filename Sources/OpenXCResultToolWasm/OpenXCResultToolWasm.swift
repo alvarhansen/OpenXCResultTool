@@ -77,6 +77,19 @@ public func openxcresulttool_version_json(_ compact: Bool) -> UnsafeMutablePoint
 }
 
 @MainActor
+@_cdecl("openxcresulttool_get_metadata_json")
+public func openxcresulttool_get_metadata_json(
+    _ pathPointer: UnsafePointer<CChar>?,
+    _ compact: Bool
+) -> UnsafeMutablePointer<CChar>? {
+    return buildJSONString(pathPointer: pathPointer, compact: compact) { path in
+        let builder = MetadataBuilder(xcresultPath: path)
+        let data = try builder.metadataJSON(compact: compact)
+        return String(decoding: data, as: UTF8.self)
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,

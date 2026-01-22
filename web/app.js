@@ -31,6 +31,11 @@ const commandSpecs = {
     requiresDatabase: false,
     signature: "compact",
   },
+  metadata: {
+    exportName: "openxcresulttool_get_metadata_json",
+    needsTestId: false,
+    requiresDatabase: false,
+  },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
   "test-details": { exportName: "openxcresulttool_get_test_results_test_details_json", needsTestId: true },
