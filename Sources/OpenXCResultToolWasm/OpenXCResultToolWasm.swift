@@ -103,6 +103,20 @@ public func openxcresulttool_format_description_json(_ compact: Bool) -> UnsafeM
 }
 
 @MainActor
+@_cdecl("openxcresulttool_graph_text")
+public func openxcresulttool_graph_text(
+    _ pathPointer: UnsafePointer<CChar>?,
+    _ compact: Bool
+) -> UnsafeMutablePointer<CChar>? {
+    _ = compact
+    return buildJSONString(pathPointer: pathPointer, compact: false) { path in
+        let builder = try GraphBuilder(xcresultPath: path)
+        let data = try builder.graph(id: nil)
+        return String(decoding: data, as: UTF8.self)
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,

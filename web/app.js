@@ -43,6 +43,11 @@ const commandSpecs = {
     requiresDatabase: false,
     signature: "compact",
   },
+  graph: {
+    exportName: "openxcresulttool_graph_text",
+    needsTestId: false,
+    requiresDatabase: false,
+  },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
   "test-details": { exportName: "openxcresulttool_get_test_results_test_details_json", needsTestId: true },
