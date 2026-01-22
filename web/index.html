@@ -21,7 +21,7 @@
     <section class="grid" data-reveal>
       <article class="card">
         <h2>1. Load Bundle</h2>
-        <p>Select the <code>.xcresult</code> folder (not a zip). We write the bundle into a virtual FS at <code>/work/&lt;bundle&gt;.xcresult</code>.</p>
+        <p>Select the baseline <code>.xcresult</code> folder (not a zip). We write it into a virtual FS at <code>/work/&lt;bundle&gt;.xcresult</code>. For the compare command, also load a comparison bundle mounted at <code>/compare/&lt;bundle&gt;.xcresult</code>.</p>
         <div id="drop-zone" class="drop-zone">
           <p class="drop-zone-label">Drag &amp; drop a <code>.xcresult</code> folder or <code>.xcresult.zip</code>.</p>
           <label class="drop">
@@ -35,6 +35,21 @@
           <div class="meta">
             <span id="bundle-name">No bundle loaded.</span>
             <span id="bundle-count">0 files</span>
+          </div>
+        </div>
+        <div id="compare-drop-zone" class="drop-zone">
+          <p class="drop-zone-label">Compare bundle (used for the compare command only).</p>
+          <label class="drop">
+            <input id="compare-xcresult-input" type="file" webkitdirectory directory multiple>
+            <span>Choose compare .xcresult folder</span>
+          </label>
+          <label class="drop alt">
+            <input id="compare-xcresult-zip-input" type="file" accept=".zip">
+            <span>Choose compare .xcresult.zip</span>
+          </label>
+          <div class="meta">
+            <span id="compare-bundle-name">No compare bundle loaded.</span>
+            <span id="compare-bundle-count">0 files</span>
           </div>
         </div>
       </article>
@@ -51,6 +66,7 @@
               <option value="format-description">format description</option>
               <option value="graph">graph</option>
               <option value="object">get object</option>
+              <option value="compare">compare</option>
               <option value="summary">test-results summary</option>
               <option value="tests">test-results tests</option>
               <option value="test-details">test-results test-details</option>

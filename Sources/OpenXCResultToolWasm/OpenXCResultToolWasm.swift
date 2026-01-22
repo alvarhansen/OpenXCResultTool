@@ -135,6 +135,30 @@ public func openxcresulttool_get_object_json(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_compare_json")
+public func openxcresulttool_compare_json(
+    _ baselinePointer: UnsafePointer<CChar>?,
+    _ currentPointer: UnsafePointer<CChar>?,
+    _ compact: Bool
+) -> UnsafeMutablePointer<CChar>? {
+    return buildJSONString(
+        baselinePointer: baselinePointer,
+        currentPointer: currentPointer,
+        compact: compact
+    ) { baselinePath, currentPath in
+        let builder = try CompareBuilder(baselinePath: baselinePath, currentPath: currentPath)
+        let result = try builder.compare()
+        var output = CompareOutput()
+        output.summary = result.summary
+        output.testFailures = result.testFailures
+        output.testsExecuted = result.testsExecuted
+        output.buildWarnings = result.buildWarnings
+        output.analyzerIssues = result.analyzerIssues
+        return try encodeJSON(output, compact: compact)
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,
@@ -251,6 +275,31 @@ private func buildJSONString(
     }
     do {
         let value = try work(path)
+        lastErrorMessage = nil
+        return makeCString(value)
+    } catch {
+        lastErrorMessage = String(describing: error)
+        return nil
+    }
+}
+
+@MainActor
+private func buildJSONString(
+    baselinePointer: UnsafePointer<CChar>?,
+    currentPointer: UnsafePointer<CChar>?,
+    compact: Bool,
+    work: (String, String) throws -> String
+) -> UnsafeMutablePointer<CChar>? {
+    guard let baselinePath = optionalString(from: baselinePointer) else {
+        lastErrorMessage = "baseline path is required"
+        return nil
+    }
+    guard let currentPath = optionalString(from: currentPointer) else {
+        lastErrorMessage = "current path is required"
+        return nil
+    }
+    do {
+        let value = try work(baselinePath, currentPath)
         lastErrorMessage = nil
         return makeCString(value)
     } catch {

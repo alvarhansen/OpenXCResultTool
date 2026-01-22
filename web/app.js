@@ -10,8 +10,13 @@ const elements = {
   input: document.getElementById("xcresult-input"),
   zipInput: document.getElementById("xcresult-zip-input"),
   dropZone: document.getElementById("drop-zone"),
+  compareInput: document.getElementById("compare-xcresult-input"),
+  compareZipInput: document.getElementById("compare-xcresult-zip-input"),
+  compareDropZone: document.getElementById("compare-drop-zone"),
   bundleName: document.getElementById("bundle-name"),
   bundleCount: document.getElementById("bundle-count"),
+  compareBundleName: document.getElementById("compare-bundle-name"),
+  compareBundleCount: document.getElementById("compare-bundle-count"),
   commandSelect: document.getElementById("command-select"),
   testIdField: document.getElementById("test-id-field"),
   testIdLabel: document.getElementById("test-id-label"),
@@ -57,6 +62,11 @@ const commandSpecs = {
     idPlaceholder: "Optional object id (defaults to root)",
     requiresDatabase: false,
   },
+  compare: {
+    exportName: "openxcresulttool_compare_json",
+    needsTestId: false,
+    requiresCompare: true,
+  },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
   "test-details": { exportName: "openxcresulttool_get_test_results_test_details_json", needsTestId: true },
@@ -74,6 +84,14 @@ const state = {
   fileCount: 0,
 };
 
+const compareState = {
+  source: "none",
+  files: [],
+  entries: [],
+  bundleRoot: null,
+  fileCount: 0,
+};
+
 let wasiReady = false;
 
 function setStatus(message, tone = "info") {
@@ -81,10 +99,10 @@ function setStatus(message, tone = "info") {
   elements.status.dataset.tone = tone;
 }
 
-function updateBundleMeta() {
-  const name = state.bundleRoot ? state.bundleRoot : "No bundle loaded.";
-  elements.bundleName.textContent = name;
-  elements.bundleCount.textContent = `${state.fileCount} files`;
+function updateBundleMeta(targetState = state, nameElement = elements.bundleName, countElement = elements.bundleCount) {
+  const name = targetState.bundleRoot ? targetState.bundleRoot : "No bundle loaded.";
+  nameElement.textContent = name;
+  countElement.textContent = `${targetState.fileCount} files`;
 }
 
 function updateTestIdVisibility() {
@@ -115,13 +133,17 @@ function ensureDir(fs, dirPath) {
   }
 }
 
-function resetState() {
-  state.source = "none";
-  state.files = [];
-  state.entries = [];
-  state.bundleRoot = null;
-  state.fileCount = 0;
-  updateBundleMeta();
+function resetState(
+  targetState = state,
+  nameElement = elements.bundleName,
+  countElement = elements.bundleCount
+) {
+  targetState.source = "none";
+  targetState.files = [];
+  targetState.entries = [];
+  targetState.bundleRoot = null;
+  targetState.fileCount = 0;
+  updateBundleMeta(targetState, nameElement, countElement);
 }
 
 function isIgnoredZipEntry(name) {
@@ -186,6 +208,7 @@ async function createRuntime() {
       wasmFs.fs.volume = wasmFs.volume;
     }
     ensureDir(wasmFs.fs, "/work");
+    ensureDir(wasmFs.fs, "/compare");
     ensureDir(wasmFs.fs, "/tmp");
 
     stage = "wasi-construct";
@@ -195,6 +218,7 @@ async function createRuntime() {
       env: {},
       preopenDirectories: {
         "/work": "/work",
+        "/compare": "/compare",
         "/tmp": "/tmp",
       },
       bindings: {
@@ -235,24 +259,24 @@ async function createRuntime() {
   }
 }
 
-async function mountBundle(fs) {
-  if (state.source === "directory") {
-    for (const file of state.files) {
+async function mountBundle(fs, targetState = state, mountRoot = "/work") {
+  if (targetState.source === "directory") {
+    for (const file of targetState.files) {
       const relativePath = file.webkitRelativePath || file.name;
-      const targetPath = `/work/${relativePath}`;
+      const targetPath = `${mountRoot}/${relativePath}`;
       ensureDir(fs, path.dirname(targetPath));
       const data = new Uint8Array(await file.arrayBuffer());
       fs.writeFileSync(targetPath, data);
     }
-    return `/work/${state.bundleRoot}`;
+    return `${mountRoot}/${targetState.bundleRoot}`;
   }
-  if (state.source === "zip") {
-    for (const entry of state.entries) {
-      const targetPath = `/work/${entry.path}`;
+  if (targetState.source === "zip") {
+    for (const entry of targetState.entries) {
+      const targetPath = `${mountRoot}/${entry.path}`;
       ensureDir(fs, path.dirname(targetPath));
       fs.writeFileSync(targetPath, entry.data);
     }
-    return `/work/${state.bundleRoot}`;
+    return `${mountRoot}/${targetState.bundleRoot}`;
   }
   throw new Error("No bundle loaded.");
 }
@@ -325,8 +349,8 @@ function getLastError(instance) {
   return message;
 }
 
-async function prepareDatabase(instance, wasmFs) {
-  const bundlePath = await mountBundle(wasmFs.fs);
+async function prepareDatabase(instance, wasmFs, targetState = state, mountRoot = "/work") {
+  const bundlePath = await mountBundle(wasmFs.fs, targetState, mountRoot);
   const databasePath = `${bundlePath}/database.sqlite3`;
 
   try {
@@ -368,6 +392,11 @@ async function runExport() {
   const requiresDatabase = spec.requiresDatabase ?? requiresBundle;
   const signature = spec.signature
     ?? ((spec.needsTestId || spec.testIdOptional) ? "path+testId" : "path");
+
+  if (command === "compare") {
+    await runCompare();
+    return;
+  }
 
   if (requiresBundle && (!state.bundleRoot || state.fileCount === 0)) {
     setStatus("Select a .xcresult folder or zip before running.", "error");
@@ -457,6 +486,57 @@ async function runExport() {
   }
 }
 
+async function runCompare() {
+  if (!state.bundleRoot || state.fileCount === 0) {
+    setStatus("Select a baseline .xcresult bundle first.", "error");
+    return;
+  }
+  if (!compareState.bundleRoot || compareState.fileCount === 0) {
+    setStatus("Select a comparison .xcresult bundle to compare against.", "error");
+    return;
+  }
+
+  setStatus("Loading WASM runtime...", "info");
+  elements.runButton.disabled = true;
+  if (elements.smokeButton) {
+    elements.smokeButton.disabled = true;
+  }
+  elements.output.textContent = "// Running compare...";
+
+  try {
+    const { instance, wasmFs } = await createRuntime();
+    const baseline = await prepareDatabase(instance, wasmFs, state, "/work");
+    const current = await prepareDatabase(instance, wasmFs, compareState, "/compare");
+    const exportFn = instance.exports.openxcresulttool_compare_json;
+    if (!exportFn) {
+      throw new Error("Missing export: openxcresulttool_compare_json");
+    }
+    const compactFlag = elements.compactToggle.checked ? 1 : 0;
+    const baselinePtr = allocCString(instance, baseline.bundlePath);
+    const currentPtr = allocCString(instance, current.bundlePath);
+    const resultPtr = exportFn(baselinePtr, currentPtr, compactFlag);
+    freeCString(instance, baselinePtr);
+    freeCString(instance, currentPtr);
+    if (!resultPtr) {
+      const error = getLastError(instance) || "Unknown error";
+      throw new Error(error);
+    }
+    const json = readCString(instance, resultPtr);
+    freeCString(instance, resultPtr);
+    elements.output.textContent = json;
+    setStatus("Compare complete.", "success");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    elements.output.textContent = "// Failed to run compare.";
+    setStatus(message, "error");
+  } finally {
+    elements.runButton.disabled = false;
+    if (elements.smokeButton) {
+      elements.smokeButton.disabled = false;
+    }
+  }
+}
+
 async function runSqliteSmokeTest() {
   if (!state.bundleRoot || state.fileCount === 0) {
     setStatus("Select a .xcresult folder or zip before running.", "error");
@@ -526,20 +606,71 @@ async function handleZipFile(event) {
   await handleZipData(file);
 }
 
-function applyDirectoryFiles(files, rootName) {
-  state.source = "directory";
-  state.files = files;
-  state.entries = [];
-  state.bundleRoot = rootName;
-  state.fileCount = files.length;
-  if (elements.zipInput) {
-    elements.zipInput.value = "";
+function handleCompareFiles(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) {
+    resetState(compareState, elements.compareBundleName, elements.compareBundleCount);
+    return;
   }
-  updateBundleMeta();
+
+  const samplePath = files[0].webkitRelativePath || files[0].name;
+  const rootName = samplePath.split("/")[0] || "bundle.xcresult";
+
+  applyDirectoryFiles(
+    files,
+    rootName,
+    compareState,
+    elements.compareBundleName,
+    elements.compareBundleCount,
+    elements.compareZipInput
+  );
+}
+
+async function handleCompareZipFile(event) {
+  const [file] = Array.from(event.target.files || []);
+  if (!file) {
+    if (compareState.source === "zip") {
+      resetState(compareState, elements.compareBundleName, elements.compareBundleCount);
+    }
+    return;
+  }
+
+  await handleZipData(
+    file,
+    compareState,
+    elements.compareBundleName,
+    elements.compareBundleCount,
+    elements.compareInput
+  );
+}
+
+function applyDirectoryFiles(
+  files,
+  rootName,
+  targetState = state,
+  nameElement = elements.bundleName,
+  countElement = elements.bundleCount,
+  clearInput = elements.zipInput
+) {
+  targetState.source = "directory";
+  targetState.files = files;
+  targetState.entries = [];
+  targetState.bundleRoot = rootName;
+  targetState.fileCount = files.length;
+  if (clearInput) {
+    clearInput.value = "";
+  }
+  updateBundleMeta(targetState, nameElement, countElement);
   setStatus("Bundle staged. Ready to run.", "success");
 }
 
-async function handleZipData(file) {
+async function handleZipData(
+  file,
+  targetState = state,
+  nameElement = elements.bundleName,
+  countElement = elements.bundleCount,
+  clearInput = elements.input
+) {
   setStatus("Unpacking zip...", "info");
   let entries;
   try {
@@ -557,23 +688,23 @@ async function handleZipData(file) {
     return;
   }
 
-  state.source = "zip";
-  state.files = [];
-  state.entries = normalized.entries;
-  state.bundleRoot = normalized.bundleRoot;
-  state.fileCount = normalized.fileCount;
-  if (elements.input) {
-    elements.input.value = "";
+  targetState.source = "zip";
+  targetState.files = [];
+  targetState.entries = normalized.entries;
+  targetState.bundleRoot = normalized.bundleRoot;
+  targetState.fileCount = normalized.fileCount;
+  if (clearInput) {
+    clearInput.value = "";
   }
-  updateBundleMeta();
+  updateBundleMeta(targetState, nameElement, countElement);
   setStatus("Zip staged. Ready to run.", "success");
 }
 
-function setDropActive(active) {
-  if (!elements.dropZone) {
+function setDropActive(dropZone, active) {
+  if (!dropZone) {
     return;
   }
-  elements.dropZone.classList.toggle("dragover", active);
+  dropZone.classList.toggle("dragover", active);
 }
 
 function readAllDirectoryEntries(reader) {
@@ -628,7 +759,14 @@ async function collectFilesFromEntry(entry, rootName, files) {
   }
 }
 
-async function handleDrop(event) {
+async function handleDrop(
+  event,
+  targetState = state,
+  nameElement = elements.bundleName,
+  countElement = elements.bundleCount,
+  clearDirectoryInput = elements.zipInput,
+  clearZipInput = elements.input
+) {
   const dataTransfer = event.dataTransfer;
   if (!dataTransfer) {
     setStatus("Drop a .xcresult.zip or .xcresult folder.", "error");
@@ -650,20 +788,27 @@ async function handleDrop(event) {
         setStatus("Dropped folder had no readable files.", "error");
         return;
       }
-      applyDirectoryFiles(files, directoryEntry.name);
+      applyDirectoryFiles(
+        files,
+        directoryEntry.name,
+        targetState,
+        nameElement,
+        countElement,
+        clearDirectoryInput
+      );
       return;
     }
 
     const zipEntry = entries.find((entry) => entry.isFile && entry.name.endsWith(".zip"));
     if (zipEntry && zipEntry.file) {
-      zipEntry.file((file) => handleZipData(file));
+      zipEntry.file((file) => handleZipData(file, targetState, nameElement, countElement, clearZipInput));
       return;
     }
   }
 
   const files = Array.from(dataTransfer.files || []);
   if (files.length === 1 && files[0].name.endsWith(".zip")) {
-    await handleZipData(files[0]);
+    await handleZipData(files[0], targetState, nameElement, countElement, clearZipInput);
     return;
   }
 
@@ -684,6 +829,12 @@ elements.input.addEventListener("change", handleFiles);
 if (elements.zipInput) {
   elements.zipInput.addEventListener("change", handleZipFile);
 }
+if (elements.compareInput) {
+  elements.compareInput.addEventListener("change", handleCompareFiles);
+}
+if (elements.compareZipInput) {
+  elements.compareZipInput.addEventListener("change", handleCompareZipFile);
+}
 elements.commandSelect.addEventListener("change", updateTestIdVisibility);
 elements.runButton.addEventListener("click", runExport);
 if (elements.smokeButton) {
@@ -693,23 +844,51 @@ elements.copyButton.addEventListener("click", copyOutput);
 if (elements.dropZone) {
   elements.dropZone.addEventListener("dragenter", (event) => {
     event.preventDefault();
-    setDropActive(true);
+    setDropActive(elements.dropZone, true);
   });
   elements.dropZone.addEventListener("dragover", (event) => {
     event.preventDefault();
-    setDropActive(true);
+    setDropActive(elements.dropZone, true);
   });
   elements.dropZone.addEventListener("dragleave", (event) => {
     if (event.target === elements.dropZone) {
-      setDropActive(false);
+      setDropActive(elements.dropZone, false);
     }
   });
   elements.dropZone.addEventListener("drop", async (event) => {
     event.preventDefault();
-    setDropActive(false);
+    setDropActive(elements.dropZone, false);
     await handleDrop(event);
+  });
+}
+if (elements.compareDropZone) {
+  elements.compareDropZone.addEventListener("dragenter", (event) => {
+    event.preventDefault();
+    setDropActive(elements.compareDropZone, true);
+  });
+  elements.compareDropZone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    setDropActive(elements.compareDropZone, true);
+  });
+  elements.compareDropZone.addEventListener("dragleave", (event) => {
+    if (event.target === elements.compareDropZone) {
+      setDropActive(elements.compareDropZone, false);
+    }
+  });
+  elements.compareDropZone.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    setDropActive(elements.compareDropZone, false);
+    await handleDrop(
+      event,
+      compareState,
+      elements.compareBundleName,
+      elements.compareBundleCount,
+      elements.compareZipInput,
+      elements.compareInput
+    );
   });
 }
 
 updateBundleMeta();
+updateBundleMeta(compareState, elements.compareBundleName, elements.compareBundleCount);
 updateTestIdVisibility();
