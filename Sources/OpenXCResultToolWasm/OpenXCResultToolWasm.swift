@@ -64,6 +64,19 @@ public func openxcresulttool_register_database(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_version_json")
+public func openxcresulttool_version_json(_ compact: Bool) -> UnsafeMutablePointer<CChar>? {
+    return buildJSONString(compact: compact) {
+        let info = VersionInfo(
+            tool: OpenXCResultToolVersion.tool,
+            schema: OpenXCResultToolVersion.schema,
+            legacyFormat: OpenXCResultToolVersion.legacyFormat
+        )
+        return try encodeJSON(info, compact: compact)
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,
@@ -180,6 +193,21 @@ private func buildJSONString(
     }
     do {
         let value = try work(path)
+        lastErrorMessage = nil
+        return makeCString(value)
+    } catch {
+        lastErrorMessage = String(describing: error)
+        return nil
+    }
+}
+
+@MainActor
+private func buildJSONString(
+    compact: Bool,
+    work: () throws -> String
+) -> UnsafeMutablePointer<CChar>? {
+    do {
+        let value = try work()
         lastErrorMessage = nil
         return makeCString(value)
     } catch {
@@ -382,4 +410,10 @@ private struct SQLiteSmokeResult: Encodable {
     let databasePath: String
     let tableCount: Int
     let sampleTables: [String]
+}
+
+private struct VersionInfo: Encodable {
+    let tool: String
+    let schema: String
+    let legacyFormat: String
 }

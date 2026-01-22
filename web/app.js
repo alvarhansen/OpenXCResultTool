@@ -24,6 +24,13 @@ const elements = {
 };
 
 const commandSpecs = {
+  version: {
+    exportName: "openxcresulttool_version_json",
+    needsTestId: false,
+    requiresBundle: false,
+    requiresDatabase: false,
+    signature: "compact",
+  },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
   "test-details": { exportName: "openxcresulttool_get_test_results_test_details_json", needsTestId: true },
@@ -320,15 +327,19 @@ async function prepareDatabase(instance, wasmFs) {
 }
 
 async function runExport() {
-  if (!state.bundleRoot || state.fileCount === 0) {
-    setStatus("Select a .xcresult folder or zip before running.", "error");
-    return;
-  }
-
   const command = elements.commandSelect.value;
   const spec = commandSpecs[command];
   const testId = elements.testIdInput.value.trim();
   const compact = elements.compactToggle.checked;
+  const requiresBundle = spec.requiresBundle ?? true;
+  const requiresDatabase = spec.requiresDatabase ?? requiresBundle;
+  const signature = spec.signature
+    ?? ((spec.needsTestId || spec.testIdOptional) ? "path+testId" : "path");
+
+  if (requiresBundle && (!state.bundleRoot || state.fileCount === 0)) {
+    setStatus("Select a .xcresult folder or zip before running.", "error");
+    return;
+  }
 
   if (spec.needsTestId && !testId) {
     setStatus("This command requires a test id.", "error");
@@ -344,9 +355,17 @@ async function runExport() {
 
   try {
     const { instance, wasmFs } = await createRuntime();
-    const { bundlePath, databaseBytes } = await prepareDatabase(instance, wasmFs);
-    if (databaseBytes && typeof databaseBytes.length === "number") {
-      setStatus(`Database staged (${databaseBytes.length} bytes).`, "info");
+    let bundlePath = null;
+    if (requiresBundle) {
+      if (requiresDatabase) {
+        const prepared = await prepareDatabase(instance, wasmFs);
+        bundlePath = prepared.bundlePath;
+        if (prepared.databaseBytes && typeof prepared.databaseBytes.length === "number") {
+          setStatus(`Database staged (${prepared.databaseBytes.length} bytes).`, "info");
+        }
+      } else {
+        bundlePath = await mountBundle(wasmFs.fs);
+      }
     }
 
     const exportFn = instance.exports[spec.exportName];
@@ -354,21 +373,31 @@ async function runExport() {
       throw new Error(`Missing export: ${spec.exportName}`);
     }
 
-    const pathPtr = allocCString(instance, bundlePath);
     const compactFlag = compact ? 1 : 0;
+    let pathPtr = 0;
     let testPtr = 0;
-    if (spec.needsTestId || (spec.testIdOptional && testId)) {
-      testPtr = allocCString(instance, testId);
-    }
-
     let resultPtr = 0;
-    if (spec.needsTestId || spec.testIdOptional) {
-      resultPtr = exportFn(pathPtr, testPtr, compactFlag);
+
+    if (signature === "compact") {
+      resultPtr = exportFn(compactFlag);
     } else {
-      resultPtr = exportFn(pathPtr, compactFlag);
+      if (!bundlePath) {
+        throw new Error("Bundle path is required for this command.");
+      }
+      pathPtr = allocCString(instance, bundlePath);
+      if (signature === "path+testId") {
+        if (spec.needsTestId || (spec.testIdOptional && testId)) {
+          testPtr = allocCString(instance, testId);
+        }
+        resultPtr = exportFn(pathPtr, testPtr, compactFlag);
+      } else {
+        resultPtr = exportFn(pathPtr, compactFlag);
+      }
     }
 
-    freeCString(instance, pathPtr);
+    if (pathPtr) {
+      freeCString(instance, pathPtr);
+    }
     if (testPtr) {
       freeCString(instance, testPtr);
     }
