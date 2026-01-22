@@ -79,6 +79,7 @@ targets.append(
                     "-Xlinker", "--export=openxcresulttool_get_test_results_insights_json",
                     "-Xlinker", "--export=openxcresulttool_sqlite_smoke_test_json",
                     "-Xlinker", "--export=openxcresulttool_register_database",
+                    "-Xlinker", "--export=openxcresulttool_register_file",
                     "-Xlinker", "--export=openxcresulttool_version_json",
                     "-Xlinker", "--export=openxcresulttool_get_metadata_json",
                     "-Xlinker", "--export=openxcresulttool_get_metadata_from_plist_json",

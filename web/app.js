@@ -45,7 +45,6 @@ const commandSpecs = {
     exportName: "openxcresulttool_get_metadata_from_plist_json",
     needsTestId: false,
     requiresDatabase: false,
-    requiresInfoPlist: true,
     usePlistBytes: true,
   },
   "format-description": {
@@ -59,6 +58,7 @@ const commandSpecs = {
     exportName: "openxcresulttool_graph_text",
     needsTestId: false,
     requiresDatabase: false,
+    useFileRegistry: true,
   },
   object: {
     exportName: "openxcresulttool_get_object_json",
@@ -67,7 +67,7 @@ const commandSpecs = {
     idLabel: "Object Id",
     idPlaceholder: "Optional object id (defaults to root)",
     requiresDatabase: false,
-    requiresInfoPlist: true,
+    useFileRegistry: true,
   },
   compare: {
     exportName: "openxcresulttool_compare_json",
@@ -80,7 +80,7 @@ const commandSpecs = {
     action: "download",
     downloadSignature: "path+output",
     outputName: "diagnostics",
-    requiresInfoPlist: true,
+    useFileRegistry: true,
   },
   "export-attachments": {
     exportName: "openxcresulttool_export_attachments",
@@ -91,7 +91,7 @@ const commandSpecs = {
     downloadSignature: "path+output+testId+flag",
     outputName: "attachments",
     showOnlyFailures: true,
-    requiresInfoPlist: true,
+    useFileRegistry: true,
   },
   "export-metrics": {
     exportName: "openxcresulttool_export_metrics",
@@ -113,7 +113,7 @@ const commandSpecs = {
     outputName: "object",
     useTestIdInName: true,
     showObjectType: true,
-    requiresInfoPlist: true,
+    useFileRegistry: true,
   },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
@@ -201,13 +201,6 @@ function safeReaddir(fs, dirPath) {
   } catch (error) {
     return [];
   }
-}
-
-function mountRootFor(bundlePath) {
-  if (bundlePath.startsWith("/compare/")) {
-    return "/compare";
-  }
-  return "/work";
 }
 
 function resetState(
@@ -359,7 +352,7 @@ async function createRuntime() {
   }
 }
 
-async function mountBundle(fs, targetState = state, mountRoot = "/work") {
+async function mountBundle(fs, targetState = state, mountRoot = "/work", instance = null) {
   if (targetState.source === "directory") {
     for (const file of targetState.files) {
       const relativePath = file.webkitRelativePath || file._relativePath || file.name;
@@ -367,6 +360,9 @@ async function mountBundle(fs, targetState = state, mountRoot = "/work") {
       ensureDir(fs, path.dirname(targetPath));
       const data = new Uint8Array(await file.arrayBuffer());
       fs.writeFileSync(targetPath, data);
+      if (instance) {
+        registerFile(instance, targetPath, data);
+      }
     }
     return resolveBundlePath(fs, mountRoot, targetState);
   }
@@ -375,6 +371,9 @@ async function mountBundle(fs, targetState = state, mountRoot = "/work") {
       const targetPath = `${mountRoot}/${entry.path}`;
       ensureDir(fs, path.dirname(targetPath));
       fs.writeFileSync(targetPath, entry.data);
+      if (instance) {
+        registerFile(instance, targetPath, entry.data);
+      }
     }
     return resolveBundlePath(fs, mountRoot, targetState);
   }
@@ -408,6 +407,33 @@ function allocBytes(instance, data) {
   const memory = new Uint8Array(instance.exports.memory.buffer, ptr, data.length);
   memory.set(data);
   return ptr;
+}
+
+function shouldRegisterFile(pathValue) {
+  return pathValue.endsWith("/Info.plist") || pathValue.includes("/Data/");
+}
+
+function registerFile(instance, filePath, data) {
+  const register = instance.exports.openxcresulttool_register_file;
+  if (!register) {
+    return;
+  }
+  if (!shouldRegisterFile(filePath)) {
+    return;
+  }
+  const dataLength = data.length ?? 0;
+  const dataPtr = dataLength ? allocBytes(instance, data) : 0;
+  const pathPtr = allocCString(instance, filePath);
+  const ok = register(pathPtr, dataPtr, dataLength);
+  freeCString(instance, pathPtr);
+  if (dataPtr) {
+    freeCString(instance, dataPtr);
+  }
+
+  if (!ok) {
+    const message = getLastError(instance) || "Unknown file registration error.";
+    throw new Error(message);
+  }
 }
 
 function readCString(instance, ptr) {
@@ -514,34 +540,9 @@ function resolveBundlePath(fs, mountRoot, targetState) {
   return candidatePath;
 }
 
-function validateInfoPlist(fs, bundlePath, mountRoot) {
-  const plistPath = `${bundlePath}/Info.plist`;
-  if (fs.existsSync(plistPath)) {
-    return null;
-  }
-
-  const rootListing = safeReaddir(fs, mountRoot);
-  const bundleListing = safeReaddir(fs, bundlePath);
-  const rootHasPlist = fs.existsSync(`${mountRoot}/Info.plist`);
-  const rootHint = rootHasPlist
-    ? `Found ${mountRoot}/Info.plist (bundle root may be missing).`
-    : `No ${mountRoot}/Info.plist.`;
-  const discoveredRoots = findBundleRoots(fs, mountRoot)
-    .map((root) => normalizeRelativePath(path.relative(mountRoot, root)))
-    .sort();
-  const rootPreview = rootListing.slice(0, 8).join(", ") || "empty";
-  const bundlePreview = bundleListing.slice(0, 8).join(", ") || "empty";
-  return [
-    `Info.plist not found at ${plistPath}.`,
-    rootHint,
-    `Discovered bundles: ${discoveredRoots.join(", ") || "none"}`,
-    `${mountRoot} entries: ${rootPreview}`,
-    `Bundle entries: ${bundlePreview}`
-  ].join(" ");
-}
 
 async function prepareDatabase(instance, wasmFs, targetState = state, mountRoot = "/work") {
-  const bundlePath = await mountBundle(wasmFs.fs, targetState, mountRoot);
+  const bundlePath = await mountBundle(wasmFs.fs, targetState, mountRoot, instance);
   const databasePath = `${bundlePath}/database.sqlite3`;
 
   try {
@@ -684,22 +685,14 @@ async function runExport() {
           setStatus(`Database staged (${prepared.databaseBytes.length} bytes).`, "info");
         }
       } else {
-        bundlePath = await mountBundle(wasmFs.fs);
+        bundlePath = await mountBundle(wasmFs.fs, state, "/work", instance);
       }
-      if (spec.requiresInfoPlist) {
-        if (spec.usePlistBytes) {
-          const plistPath = `${bundlePath}/Info.plist`;
-          try {
-            plistBytes = wasmFs.fs.readFileSync(plistPath);
-          } catch (error) {
-            const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
-            throw new Error(infoError ?? `Unable to read ${plistPath}.`);
-          }
-        } else {
-          const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
-          if (infoError) {
-            throw new Error(infoError);
-          }
+      if (spec.usePlistBytes) {
+        const plistPath = `${bundlePath}/Info.plist`;
+        try {
+          plistBytes = wasmFs.fs.readFileSync(plistPath);
+        } catch (error) {
+          throw new Error(`Unable to read ${plistPath}.`);
         }
       }
     }
@@ -787,12 +780,6 @@ async function runDownloadExport(spec) {
   try {
     const { instance, wasmFs } = await createRuntime();
     const { bundlePath } = await prepareDatabase(instance, wasmFs);
-    if (spec.requiresInfoPlist) {
-      const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
-      if (infoError) {
-        throw new Error(infoError);
-      }
-    }
     const exportFn = instance.exports[spec.exportName];
     if (!exportFn) {
       throw new Error(`Missing export: ${spec.exportName}`);

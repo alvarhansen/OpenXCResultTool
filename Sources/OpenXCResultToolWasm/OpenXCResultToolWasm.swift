@@ -64,6 +64,34 @@ public func openxcresulttool_register_database(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_register_file")
+public func openxcresulttool_register_file(
+    _ pathPointer: UnsafePointer<CChar>?,
+    _ dataPointer: UnsafePointer<UInt8>?,
+    _ length: Int
+) -> Bool {
+    guard let path = optionalString(from: pathPointer) else {
+        lastErrorMessage = "path is required"
+        return false
+    }
+    let data: Data
+    if length == 0 {
+        data = Data()
+    } else {
+        guard let dataPointer else {
+            lastErrorMessage = "file bytes are required"
+            return false
+        }
+        data = Data(bytes: dataPointer, count: length)
+    }
+    #if os(WASI)
+    WasiFileRegistry.register(path: path, data: data)
+    #endif
+    lastErrorMessage = nil
+    return true
+}
+
+@MainActor
 @_cdecl("openxcresulttool_version_json")
 public func openxcresulttool_version_json(_ compact: Bool) -> UnsafeMutablePointer<CChar>? {
     return buildJSONString(compact: compact) {

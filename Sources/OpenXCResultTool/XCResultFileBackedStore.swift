@@ -24,7 +24,7 @@ public struct XCResultFileBackedStore {
 
     private func loadRawData(id: String) throws -> Data {
         let dataFile = dataURL.appendingPathComponent("data.\(id)")
-        let data = try Data(contentsOf: dataFile)
+        let data = try FileAccess.readData(at: dataFile)
         if data.starts(with: XCResultFileBackedStore.zstdMagic) {
             return try ZstdDecompressor.decompress(data)
         }
@@ -33,7 +33,7 @@ public struct XCResultFileBackedStore {
 
     private static func loadRootId(from url: URL) throws -> String {
         let plistURL = url.appendingPathComponent("Info.plist")
-        let data = try Data(contentsOf: plistURL)
+        let data = try FileAccess.readData(at: plistURL)
         let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
         guard let dict = plist as? [String: Any],
               let root = dict["rootId"] as? [String: Any],

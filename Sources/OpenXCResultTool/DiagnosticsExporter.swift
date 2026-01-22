@@ -83,7 +83,7 @@ public struct DiagnosticsExporter {
 
     private func loadRefs(id: String) throws -> [String] {
         let refsURL = store.dataURL.appendingPathComponent("refs.\(id)")
-        let data = try Data(contentsOf: refsURL)
+        let data = try FileAccess.readData(at: refsURL)
         guard let count = data.first else { return [] }
 
         let entrySize = 66

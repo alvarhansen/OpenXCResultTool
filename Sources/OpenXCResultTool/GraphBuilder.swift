@@ -2,7 +2,6 @@ import Foundation
 
 public struct GraphBuilder {
     private let store: XCResultFileBackedStore
-    private let fileManager = FileManager.default
 
     public init(xcresultPath: String) throws {
         self.store = try XCResultFileBackedStore(xcresultPath: xcresultPath)
@@ -59,7 +58,7 @@ public struct GraphBuilder {
 
     private func loadDirectoryNode(id: String) throws -> GraphDirectoryNode? {
         let refsURL = store.dataURL.appendingPathComponent("refs.\(id)")
-        guard fileManager.fileExists(atPath: refsURL.path) else {
+        guard FileAccess.fileExists(at: refsURL) else {
             return nil
         }
         let data = try store.loadRawObjectData(id: id)
@@ -76,7 +75,7 @@ public struct GraphBuilder {
 
     private func loadRefs(id: String) throws -> [String] {
         let refsURL = store.dataURL.appendingPathComponent("refs.\(id)")
-        let data = try Data(contentsOf: refsURL)
+        let data = try FileAccess.readData(at: refsURL)
         guard let count = data.first else { return [] }
 
         let entrySize = 66
@@ -108,11 +107,7 @@ public struct GraphBuilder {
 
     private func dataSize(id: String) -> Int {
         let dataURL = store.dataURL.appendingPathComponent("data.\(id)")
-        guard let attributes = try? fileManager.attributesOfItem(atPath: dataURL.path),
-              let size = attributes[.size] as? NSNumber else {
-            return 0
-        }
-        return size.intValue
+        return FileAccess.fileSize(at: dataURL) ?? 0
     }
 
     private static let jsonWhitespace: Set<UInt8> = [0x09, 0x0A, 0x0D, 0x20]

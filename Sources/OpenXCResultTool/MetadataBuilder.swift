@@ -54,7 +54,7 @@ public struct MetadataBuilder {
     }
 
     private func readPlist(format: inout PropertyListSerialization.PropertyListFormat) throws -> [String: Any] {
-        let data = try Data(contentsOf: plistURL)
+        let data = try FileAccess.readData(at: plistURL)
         let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: &format)
         guard let dict = plist as? [String: Any] else {
             throw MetadataError("Invalid Info.plist metadata.")
