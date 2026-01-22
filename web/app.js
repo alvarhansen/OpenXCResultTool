@@ -949,7 +949,11 @@ function readAllDirectoryEntries(reader) {
 
 function entryRelativePath(entry, rootName) {
   if (entry.fullPath) {
-    return entry.fullPath.replace(/^\//, "");
+    const trimmed = entry.fullPath.replace(/^\//, "");
+    if (trimmed.startsWith(`${rootName}/`)) {
+      return trimmed;
+    }
+    return `${rootName}/${trimmed}`;
   }
   return `${rootName}/${entry.name}`;
 }
