@@ -197,8 +197,7 @@ public func openxcresulttool_get_metadata_from_plist_json(
 @_cdecl("openxcresulttool_format_description_json")
 public func openxcresulttool_format_description_json(_ compact: Bool) -> UnsafeMutablePointer<CChar>? {
     return buildJSONString(compact: compact) {
-        let builder = FormatDescriptionBuilder()
-        let data = try builder.descriptionJSON(includeEventStreamTypes: false)
+        let data = try formatDescriptionData(includeEventStreamTypes: false)
         let object = try JSONSerialization.jsonObject(with: data, options: [])
         let options: JSONSerialization.WritingOptions = compact ? [] : [.prettyPrinted]
         let normalized = try JSONSerialization.data(withJSONObject: object, options: options)
@@ -553,6 +552,15 @@ private func encodeJSON<T: Encodable>(_ value: T, compact: Bool) throws -> Strin
     encoder.outputFormatting = compact ? [] : [.prettyPrinted]
     let data = try encoder.encode(value)
     return String(decoding: data, as: UTF8.self)
+}
+
+private func formatDescriptionData(includeEventStreamTypes: Bool) throws -> Data {
+    #if os(WASI)
+    return FormatDescriptionEmbedded.data(includeEventStreamTypes: includeEventStreamTypes)
+    #else
+    let builder = FormatDescriptionBuilder()
+    return try builder.descriptionJSON(includeEventStreamTypes: includeEventStreamTypes)
+    #endif
 }
 
 private func makeCString(_ value: String) -> UnsafeMutablePointer<CChar>? {
