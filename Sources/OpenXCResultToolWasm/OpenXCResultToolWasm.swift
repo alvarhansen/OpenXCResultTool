@@ -92,6 +92,50 @@ public func openxcresulttool_register_file(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_registered_files_json")
+public func openxcresulttool_registered_files_json(
+    _ prefixPointer: UnsafePointer<CChar>?
+) -> UnsafeMutablePointer<CChar>? {
+    #if os(WASI)
+    let prefix = optionalString(from: prefixPointer) ?? ""
+    let paths = WasiFileRegistry.paths(withPrefix: prefix)
+    do {
+        let data = try JSONSerialization.data(withJSONObject: paths, options: [.prettyPrinted])
+        lastErrorMessage = nil
+        return makeCString(String(decoding: data, as: UTF8.self))
+    } catch {
+        lastErrorMessage = String(describing: error)
+        return nil
+    }
+    #else
+    lastErrorMessage = "Registry only available on WASI."
+    return nil
+    #endif
+}
+
+@MainActor
+@_cdecl("openxcresulttool_registered_file_base64")
+public func openxcresulttool_registered_file_base64(
+    _ pathPointer: UnsafePointer<CChar>?
+) -> UnsafeMutablePointer<CChar>? {
+    #if os(WASI)
+    guard let path = optionalString(from: pathPointer) else {
+        lastErrorMessage = "path is required"
+        return nil
+    }
+    guard let data = WasiFileRegistry.data(for: path) else {
+        lastErrorMessage = "registered file not found"
+        return nil
+    }
+    lastErrorMessage = nil
+    return makeCString(data.base64EncodedString())
+    #else
+    lastErrorMessage = "Registry only available on WASI."
+    return nil
+    #endif
+}
+
+@MainActor
 @_cdecl("openxcresulttool_version_json")
 public func openxcresulttool_version_json(_ compact: Bool) -> UnsafeMutablePointer<CChar>? {
     return buildJSONString(compact: compact) {

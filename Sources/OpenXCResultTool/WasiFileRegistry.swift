@@ -22,5 +22,11 @@ public enum WasiFileRegistry {
         defer { lock.unlock() }
         storage.removeValue(forKey: path)
     }
+
+    public static func paths(withPrefix prefix: String) -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage.keys.filter { $0.hasPrefix(prefix) }.sorted()
+    }
 }
 #endif

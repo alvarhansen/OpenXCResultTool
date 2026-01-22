@@ -436,6 +436,66 @@ function registerFile(instance, filePath, data) {
   }
 }
 
+function listRegisteredFiles(instance, prefix) {
+  const listFn = instance.exports.openxcresulttool_registered_files_json;
+  if (!listFn) {
+    return [];
+  }
+  const prefixPtr = prefix ? allocCString(instance, prefix) : 0;
+  const resultPtr = listFn(prefixPtr);
+  if (prefixPtr) {
+    freeCString(instance, prefixPtr);
+  }
+  if (!resultPtr) {
+    const error = getLastError(instance) || "Unable to list registered files.";
+    throw new Error(error);
+  }
+  const json = readCString(instance, resultPtr);
+  freeCString(instance, resultPtr);
+  return JSON.parse(json);
+}
+
+function readRegisteredFile(instance, filePath) {
+  const readFn = instance.exports.openxcresulttool_registered_file_base64;
+  if (!readFn) {
+    throw new Error("openxcresulttool_registered_file_base64 export is missing.");
+  }
+  const pathPtr = allocCString(instance, filePath);
+  const resultPtr = readFn(pathPtr);
+  freeCString(instance, pathPtr);
+  if (!resultPtr) {
+    const error = getLastError(instance) || "Unable to read registered file.";
+    throw new Error(error);
+  }
+  const base64 = readCString(instance, resultPtr);
+  freeCString(instance, resultPtr);
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function buildZipFromRegistry(instance, prefix, zipRootName) {
+  const files = listRegisteredFiles(instance, prefix);
+  const entries = {};
+  let fileCount = 0;
+  for (const filePath of files) {
+    const relative = filePath.startsWith(`${prefix}/`)
+      ? filePath.slice(prefix.length + 1)
+      : path.basename(filePath);
+    const zipPath = zipRootName ? `${zipRootName}/${relative}` : relative;
+    entries[zipPath] = readRegisteredFile(instance, filePath);
+    fileCount += 1;
+  }
+  if (!fileCount) {
+    throw new Error("No exported files found in registry.");
+  }
+  const bytes = zipSync(entries, { level: 6 });
+  return { bytes, fileCount };
+}
+
 function readCString(instance, ptr) {
   const memory = new Uint8Array(instance.exports.memory.buffer);
   let end = ptr;
@@ -844,7 +904,18 @@ async function runDownloadExport(spec) {
       throw new Error(error);
     }
 
-    const { bytes, fileCount } = buildZipFromWasm(wasmFs.fs, outputPath, exportName);
+    let zipResult = null;
+    if (spec.useFileRegistry) {
+      try {
+        zipResult = buildZipFromRegistry(instance, outputPath, exportName);
+      } catch (error) {
+        zipResult = null;
+      }
+    }
+    if (!zipResult) {
+      zipResult = buildZipFromWasm(wasmFs.fs, outputPath, exportName);
+    }
+    const { bytes, fileCount } = zipResult;
     downloadZip(bytes, `${exportName}.zip`);
     elements.output.textContent = `// Exported ${fileCount} files to ${exportName}.zip`;
     setStatus("Export complete. Download should start shortly.", "success");

@@ -10,6 +10,14 @@ enum FileAccess {
         return try Data(contentsOf: url)
     }
 
+    static func writeData(_ data: Data, to url: URL) throws {
+        #if os(WASI)
+        WasiFileRegistry.register(path: url.path, data: data)
+        #else
+        try data.write(to: url, options: [.atomic])
+        #endif
+    }
+
     static func fileExists(at url: URL) -> Bool {
         #if os(WASI)
         if WasiFileRegistry.data(for: url.path) != nil {
