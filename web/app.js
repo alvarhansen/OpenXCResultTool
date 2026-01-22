@@ -21,6 +21,8 @@ const elements = {
   testIdField: document.getElementById("test-id-field"),
   testIdLabel: document.getElementById("test-id-label"),
   testIdInput: document.getElementById("test-id"),
+  onlyFailuresField: document.getElementById("only-failures-field"),
+  onlyFailuresToggle: document.getElementById("only-failures-toggle"),
   compactToggle: document.getElementById("compact-toggle"),
   runButton: document.getElementById("run-button"),
   smokeButton: document.getElementById("smoke-button"),
@@ -71,7 +73,18 @@ const commandSpecs = {
     exportName: "openxcresulttool_export_diagnostics",
     needsTestId: false,
     action: "download",
+    downloadSignature: "path+output",
     outputName: "diagnostics",
+  },
+  "export-attachments": {
+    exportName: "openxcresulttool_export_attachments",
+    needsTestId: false,
+    testIdOptional: true,
+    idPlaceholder: "Optional test id to filter attachments",
+    action: "download",
+    downloadSignature: "path+output+testId+flag",
+    outputName: "attachments",
+    showOnlyFailures: true,
   },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
@@ -121,6 +134,13 @@ function updateTestIdVisibility() {
   if (elements.testIdInput) {
     elements.testIdInput.placeholder = spec.idPlaceholder
       ?? "Optional for metrics, required for details/activities";
+  }
+  if (elements.onlyFailuresField && elements.onlyFailuresToggle) {
+    const showOnlyFailures = Boolean(spec.showOnlyFailures);
+    elements.onlyFailuresField.style.display = showOnlyFailures ? "flex" : "none";
+    if (!showOnlyFailures) {
+      elements.onlyFailuresToggle.checked = false;
+    }
   }
 }
 
@@ -557,6 +577,12 @@ async function runDownloadExport(spec) {
     return;
   }
 
+  const testId = elements.testIdInput.value.trim();
+  if (spec.needsTestId && !testId) {
+    setStatus("This command requires a test id.", "error");
+    return;
+  }
+
   setStatus("Loading WASM runtime...", "info");
   elements.runButton.disabled = true;
   if (elements.smokeButton) {
@@ -577,11 +603,34 @@ async function runDownloadExport(spec) {
     const stamp = Date.now();
     const exportName = `${spec.outputName}-${stamp}`;
     const outputPath = `${exportRoot}/${exportName}`;
+    const signature = spec.downloadSignature ?? "path+output";
     const pathPtr = allocCString(instance, bundlePath);
     const outputPtr = allocCString(instance, outputPath);
-    const ok = exportFn(pathPtr, outputPtr);
+    let testPtr = 0;
+    let ok = false;
+
+    if (signature === "path+output") {
+      ok = exportFn(pathPtr, outputPtr);
+    } else if (signature === "path+output+testId") {
+      if (testId) {
+        testPtr = allocCString(instance, testId);
+      }
+      ok = exportFn(pathPtr, outputPtr, testPtr);
+    } else if (signature === "path+output+testId+flag") {
+      if (testId) {
+        testPtr = allocCString(instance, testId);
+      }
+      const onlyFailuresFlag = elements.onlyFailuresToggle?.checked ? 1 : 0;
+      ok = exportFn(pathPtr, outputPtr, testPtr, onlyFailuresFlag);
+    } else {
+      throw new Error(`Unsupported export signature: ${signature}`);
+    }
+
     freeCString(instance, pathPtr);
     freeCString(instance, outputPtr);
+    if (testPtr) {
+      freeCString(instance, testPtr);
+    }
 
     if (!ok) {
       const error = getLastError(instance) || "Unknown error";
