@@ -14,6 +14,7 @@ const elements = {
   bundleCount: document.getElementById("bundle-count"),
   commandSelect: document.getElementById("command-select"),
   testIdField: document.getElementById("test-id-field"),
+  testIdLabel: document.getElementById("test-id-label"),
   testIdInput: document.getElementById("test-id"),
   compactToggle: document.getElementById("compact-toggle"),
   runButton: document.getElementById("run-button"),
@@ -46,6 +47,14 @@ const commandSpecs = {
   graph: {
     exportName: "openxcresulttool_graph_text",
     needsTestId: false,
+    requiresDatabase: false,
+  },
+  object: {
+    exportName: "openxcresulttool_get_object_json",
+    needsTestId: false,
+    testIdOptional: true,
+    idLabel: "Object Id",
+    idPlaceholder: "Optional object id (defaults to root)",
     requiresDatabase: false,
   },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
@@ -82,6 +91,13 @@ function updateTestIdVisibility() {
   const command = elements.commandSelect.value;
   const spec = commandSpecs[command];
   elements.testIdField.style.display = spec.needsTestId || spec.testIdOptional ? "grid" : "none";
+  if (elements.testIdLabel) {
+    elements.testIdLabel.textContent = spec.idLabel ?? "Test Id";
+  }
+  if (elements.testIdInput) {
+    elements.testIdInput.placeholder = spec.idPlaceholder
+      ?? "Optional for metrics, required for details/activities";
+  }
 }
 
 function ensureDir(fs, dirPath) {

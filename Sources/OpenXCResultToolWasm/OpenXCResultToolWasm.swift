@@ -117,6 +117,24 @@ public func openxcresulttool_graph_text(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_get_object_json")
+public func openxcresulttool_get_object_json(
+    _ pathPointer: UnsafePointer<CChar>?,
+    _ idPointer: UnsafePointer<CChar>?,
+    _ compact: Bool
+) -> UnsafeMutablePointer<CChar>? {
+    return buildJSONString(pathPointer: pathPointer, compact: compact) { path in
+        let store = try XCResultFileBackedStore(xcresultPath: path)
+        let objectId = optionalString(from: idPointer) ?? store.rootId
+        let rawValue = try store.loadObject(id: objectId)
+        let json = rawValue.toLegacyJSONValue()
+        let options: JSONSerialization.WritingOptions = compact ? [] : [.prettyPrinted]
+        let data = try JSONSerialization.data(withJSONObject: json, options: options)
+        return String(decoding: data, as: UTF8.self)
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,
