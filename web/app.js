@@ -42,7 +42,7 @@ const commandSpecs = {
     signature: "compact",
   },
   metadata: {
-    exportName: "openxcresulttool_get_metadata_json",
+    exportName: "openxcresulttool_get_metadata_from_plist_json",
     needsTestId: false,
     requiresDatabase: false,
     requiresInfoPlist: true,
