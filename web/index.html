@@ -21,7 +21,7 @@
     <section class="grid" data-reveal>
       <article class="card">
         <h2>1. Load Bundle</h2>
-        <p>Select the baseline <code>.xcresult</code> folder (not a zip). We write it into a virtual FS at <code>/work/&lt;bundle&gt;.xcresult</code>. For the compare command, also load a comparison bundle mounted at <code>/compare/&lt;bundle&gt;.xcresult</code>.</p>
+        <p>Select the baseline <code>.xcresult</code> folder or <code>.xcresult.zip</code>. We mount it at <code>/work/&lt;bundle&gt;.xcresult</code>. For the compare command, also load a comparison bundle mounted at <code>/compare/&lt;bundle&gt;.xcresult</code>.</p>
         <div id="drop-zone" class="drop-zone">
           <p class="drop-zone-label">Drag &amp; drop a <code>.xcresult</code> folder or <code>.xcresult.zip</code>.</p>
           <label class="drop">
@@ -38,7 +38,7 @@
           </div>
         </div>
         <div id="compare-drop-zone" class="drop-zone">
-          <p class="drop-zone-label">Compare bundle (used for the compare command only).</p>
+          <p class="drop-zone-label">Comparison bundle (used for the compare command only).</p>
           <label class="drop">
             <input id="compare-xcresult-input" type="file" webkitdirectory directory multiple>
             <span>Choose compare .xcresult folder</span>
