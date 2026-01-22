@@ -83,18 +83,6 @@ public func openxcresulttool_get_metadata_json(
     _ compact: Bool
 ) -> UnsafeMutablePointer<CChar>? {
     return buildJSONString(pathPointer: pathPointer, compact: compact) { path in
-        let plistPath = metadataInfoPlistPath(for: path)
-        if !FileManager.default.fileExists(atPath: plistPath) {
-            let bundleDir = URL(fileURLWithPath: plistPath).deletingLastPathComponent().path
-            let bundleEntries = debugDirectoryListing(bundleDir)
-            let rootEntries = debugDirectoryListing("/work")
-            let slashEntries = debugDirectoryListing("/")
-            let dotEntries = debugDirectoryListing(".")
-            let cwd = FileManager.default.currentDirectoryPath
-            throw WasmExportError(
-                "Info.plist not found at \(plistPath). CWD: \(cwd). Bundle entries: \(bundleEntries). /work entries: \(rootEntries). / entries: \(slashEntries). ./ entries: \(dotEntries)."
-            )
-        }
         let builder = MetadataBuilder(xcresultPath: path)
         let data = try builder.metadataJSON(compact: compact)
         return String(decoding: data, as: UTF8.self)
@@ -516,17 +504,6 @@ private func databasePath(for path: String) -> String {
     return url.appendingPathComponent("database.sqlite3").path
 }
 
-private func metadataInfoPlistPath(for path: String) -> String {
-    let url = URL(fileURLWithPath: path)
-    if url.pathExtension == "xcresult" {
-        return url.appendingPathComponent("Info.plist").path
-    }
-    if url.lastPathComponent == "Info.plist" {
-        return url.path
-    }
-    return url.appendingPathComponent("Info.plist").path
-}
-
 private func metadataDictionary(from dict: [String: Any]) -> [String: Any] {
     let dateCreated = (dict["dateCreated"] as? Date).map { formatMetadataDate($0) } ?? ""
     let externalLocations = dict["externalLocations"] as? [[String: Any]] ?? []
@@ -549,19 +526,6 @@ private func formatMetadataDate(_ date: Date) -> String {
     formatter.timeZone = TimeZone.current
     formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
     return formatter.string(from: date)
-}
-
-private func debugDirectoryListing(_ path: String, limit: Int = 20) -> String {
-    do {
-        let entries = try FileManager.default.contentsOfDirectory(atPath: path)
-        let preview = entries.prefix(limit).joined(separator: ", ")
-        if entries.count > limit {
-            return "\(preview), ..."
-        }
-        return preview.isEmpty ? "empty" : preview
-    } catch {
-        return "unavailable (\(error))"
-    }
 }
 
 private struct SQLiteOpenAttempt {
