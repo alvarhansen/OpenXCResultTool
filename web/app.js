@@ -227,13 +227,37 @@ function detectBundleRoot(paths) {
   return candidate.endsWith(".xcresult") ? candidate : null;
 }
 
+function normalizeRelativePath(value) {
+  return value.replace(/\\/g, "/").replace(/^\.\/+/, "");
+}
+
+function detectBundleRootFromPaths(paths) {
+  for (const rawPath of paths) {
+    const normalized = normalizeRelativePath(rawPath);
+    const plistMatch = normalized.match(/(.+\.xcresult)\/Info\.plist$/i);
+    if (plistMatch) {
+      return plistMatch[1];
+    }
+    const dbMatch = normalized.match(/(.+\.xcresult)\/database\.sqlite3$/i);
+    if (dbMatch) {
+      return dbMatch[1];
+    }
+  }
+  return null;
+}
+
 function normalizeZipEntries(zipEntries) {
-  const files = Object.keys(zipEntries).filter((name) => !isIgnoredZipEntry(name));
-  const rootCandidate = detectBundleRoot(files);
+  const files = Object.entries(zipEntries)
+    .map(([name, data]) => ({
+      name: normalizeRelativePath(name),
+      data,
+    }))
+    .filter((entry) => !isIgnoredZipEntry(entry.name));
+  const rootCandidate = detectBundleRoot(files.map((entry) => entry.name));
   const bundleRoot = rootCandidate ?? "bundle.xcresult";
-  const entries = files.map((name) => {
-    const normalized = rootCandidate ? name : `${bundleRoot}/${name}`;
-    return { path: normalized, data: zipEntries[name] };
+  const entries = files.map((entry) => {
+    const normalized = rootCandidate ? entry.name : `${bundleRoot}/${entry.name}`;
+    return { path: normalized, data: entry.data };
   });
   return { bundleRoot, entries, fileCount: entries.length };
 }
@@ -880,6 +904,11 @@ function applyDirectoryFiles(
   targetState.entries = [];
   targetState.bundleRoot = rootName;
   targetState.fileCount = files.length;
+  const paths = files.map((file) => file.webkitRelativePath || file.name);
+  const detectedRoot = detectBundleRootFromPaths(paths);
+  if (detectedRoot) {
+    targetState.bundleRoot = detectedRoot;
+  }
   if (clearInput) {
     clearInput.value = "";
   }
@@ -916,6 +945,10 @@ async function handleZipData(
   targetState.entries = normalized.entries;
   targetState.bundleRoot = normalized.bundleRoot;
   targetState.fileCount = normalized.fileCount;
+  const detectedRoot = detectBundleRootFromPaths(normalized.entries.map((entry) => entry.path));
+  if (detectedRoot) {
+    targetState.bundleRoot = detectedRoot;
+  }
   if (clearInput) {
     clearInput.value = "";
   }
