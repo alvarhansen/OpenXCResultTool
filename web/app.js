@@ -36,6 +36,13 @@ const commandSpecs = {
     needsTestId: false,
     requiresDatabase: false,
   },
+  "format-description": {
+    exportName: "openxcresulttool_format_description_json",
+    needsTestId: false,
+    requiresBundle: false,
+    requiresDatabase: false,
+    signature: "compact",
+  },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
   "test-details": { exportName: "openxcresulttool_get_test_results_test_details_json", needsTestId: true },

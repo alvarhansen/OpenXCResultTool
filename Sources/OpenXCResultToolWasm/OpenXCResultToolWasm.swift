@@ -90,6 +90,19 @@ public func openxcresulttool_get_metadata_json(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_format_description_json")
+public func openxcresulttool_format_description_json(_ compact: Bool) -> UnsafeMutablePointer<CChar>? {
+    return buildJSONString(compact: compact) {
+        let builder = FormatDescriptionBuilder()
+        let data = try builder.descriptionJSON(includeEventStreamTypes: false)
+        let object = try JSONSerialization.jsonObject(with: data, options: [])
+        let options: JSONSerialization.WritingOptions = compact ? [] : [.prettyPrinted]
+        let normalized = try JSONSerialization.data(withJSONObject: object, options: options)
+        return String(decoding: normalized, as: UTF8.self)
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,
