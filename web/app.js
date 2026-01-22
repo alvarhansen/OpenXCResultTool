@@ -23,6 +23,8 @@ const elements = {
   testIdInput: document.getElementById("test-id"),
   onlyFailuresField: document.getElementById("only-failures-field"),
   onlyFailuresToggle: document.getElementById("only-failures-toggle"),
+  objectTypeField: document.getElementById("object-type-field"),
+  objectTypeSelect: document.getElementById("object-type-select"),
   compactToggle: document.getElementById("compact-toggle"),
   runButton: document.getElementById("run-button"),
   smokeButton: document.getElementById("smoke-button"),
@@ -95,6 +97,17 @@ const commandSpecs = {
     downloadSignature: "path+output+testId",
     outputName: "metrics",
   },
+  "export-object": {
+    exportName: "openxcresulttool_export_object",
+    needsTestId: true,
+    idLabel: "Object Id",
+    idPlaceholder: "Required object id for export",
+    action: "download",
+    downloadSignature: "path+output+id+type",
+    outputName: "object",
+    useTestIdInName: true,
+    showObjectType: true,
+  },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
   "test-details": { exportName: "openxcresulttool_get_test_results_test_details_json", needsTestId: true },
@@ -149,6 +162,13 @@ function updateTestIdVisibility() {
     elements.onlyFailuresField.style.display = showOnlyFailures ? "flex" : "none";
     if (!showOnlyFailures) {
       elements.onlyFailuresToggle.checked = false;
+    }
+  }
+  if (elements.objectTypeField && elements.objectTypeSelect) {
+    const showObjectType = Boolean(spec.showObjectType);
+    elements.objectTypeField.style.display = showObjectType ? "grid" : "none";
+    if (!showObjectType) {
+      elements.objectTypeSelect.value = "file";
     }
   }
 }
@@ -422,6 +442,13 @@ function normalizeZipPath(value) {
   return value.split(path.sep).join("/");
 }
 
+function safeFileName(value) {
+  return value
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 function buildZipFromWasm(fs, rootPath, zipRootName) {
   const entries = {};
   let fileCount = 0;
@@ -610,12 +637,25 @@ async function runDownloadExport(spec) {
     const exportRoot = "/tmp/export";
     ensureDir(wasmFs.fs, exportRoot);
     const stamp = Date.now();
-    const exportName = `${spec.outputName}-${stamp}`;
-    const outputPath = `${exportRoot}/${exportName}`;
     const signature = spec.downloadSignature ?? "path+output";
+    let exportName = `${spec.outputName}-${stamp}`;
+    if (spec.useTestIdInName && testId) {
+      const safeId = safeFileName(testId) || "object";
+      exportName = `${spec.outputName}-${safeId}-${stamp}`;
+    }
+    let outputPath = `${exportRoot}/${exportName}`;
+    const objectType = signature === "path+output+id+type"
+      ? (elements.objectTypeSelect?.value ?? "file")
+      : null;
+    if (signature === "path+output+id+type" && objectType === "file") {
+      const fileStem = safeFileName(testId) || "object";
+      outputPath = `${outputPath}/${fileStem}.bin`;
+    }
+
     const pathPtr = allocCString(instance, bundlePath);
     const outputPtr = allocCString(instance, outputPath);
     let testPtr = 0;
+    let typePtr = 0;
     let ok = false;
 
     if (signature === "path+output") {
@@ -631,6 +671,10 @@ async function runDownloadExport(spec) {
       }
       const onlyFailuresFlag = elements.onlyFailuresToggle?.checked ? 1 : 0;
       ok = exportFn(pathPtr, outputPtr, testPtr, onlyFailuresFlag);
+    } else if (signature === "path+output+id+type") {
+      testPtr = allocCString(instance, testId);
+      typePtr = allocCString(instance, objectType ?? "file");
+      ok = exportFn(pathPtr, outputPtr, testPtr, typePtr);
     } else {
       throw new Error(`Unsupported export signature: ${signature}`);
     }
@@ -639,6 +683,9 @@ async function runDownloadExport(spec) {
     freeCString(instance, outputPtr);
     if (testPtr) {
       freeCString(instance, testPtr);
+    }
+    if (typePtr) {
+      freeCString(instance, typePtr);
     }
 
     if (!ok) {

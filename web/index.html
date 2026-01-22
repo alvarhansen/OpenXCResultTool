@@ -70,6 +70,7 @@
               <option value="export-diagnostics">export diagnostics</option>
               <option value="export-attachments">export attachments</option>
               <option value="export-metrics">export metrics</option>
+              <option value="export-object">export object</option>
               <option value="summary">test-results summary</option>
               <option value="tests">test-results tests</option>
               <option value="test-details">test-results test-details</option>
@@ -86,6 +87,13 @@
           <label id="only-failures-field" class="toggle" style="display: none;">
             <input id="only-failures-toggle" type="checkbox">
             <span>Only failures (attachments)</span>
+          </label>
+          <label id="object-type-field" style="display: none;">
+            <span>Object Type</span>
+            <select id="object-type-select">
+              <option value="file">file</option>
+              <option value="directory">directory</option>
+            </select>
           </label>
           <label class="toggle">
             <input id="compact-toggle" type="checkbox">

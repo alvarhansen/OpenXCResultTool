@@ -240,6 +240,39 @@ public func openxcresulttool_export_metrics(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_export_object")
+public func openxcresulttool_export_object(
+    _ pathPointer: UnsafePointer<CChar>?,
+    _ outputPointer: UnsafePointer<CChar>?,
+    _ idPointer: UnsafePointer<CChar>?,
+    _ typePointer: UnsafePointer<CChar>?
+) -> Bool {
+    guard let path = optionalString(from: pathPointer) else {
+        lastErrorMessage = "path is required"
+        return false
+    }
+    guard let outputPath = optionalString(from: outputPointer) else {
+        lastErrorMessage = "output path is required"
+        return false
+    }
+    guard let objectId = optionalString(from: idPointer) else {
+        lastErrorMessage = "object id is required"
+        return false
+    }
+    let typeValue = optionalString(from: typePointer) ?? "file"
+    let exportType = ObjectExportKind(rawValue: typeValue) ?? .file
+    do {
+        let exporter = try ObjectExporter(xcresultPath: path)
+        try exporter.export(id: objectId, type: exportType, to: outputPath)
+        lastErrorMessage = nil
+        return true
+    } catch {
+        lastErrorMessage = String(describing: error)
+        return false
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_get_test_results_summary_json")
 public func openxcresulttool_get_test_results_summary_json(
     _ pathPointer: UnsafePointer<CChar>?,
