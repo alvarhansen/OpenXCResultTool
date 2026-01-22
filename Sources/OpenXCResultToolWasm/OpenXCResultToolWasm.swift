@@ -88,8 +88,11 @@ public func openxcresulttool_get_metadata_json(
             let bundleDir = URL(fileURLWithPath: plistPath).deletingLastPathComponent().path
             let bundleEntries = debugDirectoryListing(bundleDir)
             let rootEntries = debugDirectoryListing("/work")
+            let slashEntries = debugDirectoryListing("/")
+            let dotEntries = debugDirectoryListing(".")
+            let cwd = FileManager.default.currentDirectoryPath
             throw WasmExportError(
-                "Info.plist not found at \(plistPath). Bundle entries: \(bundleEntries). /work entries: \(rootEntries)."
+                "Info.plist not found at \(plistPath). CWD: \(cwd). Bundle entries: \(bundleEntries). /work entries: \(rootEntries). / entries: \(slashEntries). ./ entries: \(dotEntries)."
             )
         }
         let builder = MetadataBuilder(xcresultPath: path)
