@@ -87,6 +87,7 @@ targets.append(
                     "-Xlinker", "--export=openxcresulttool_compare_json",
                     "-Xlinker", "--export=openxcresulttool_export_diagnostics",
                     "-Xlinker", "--export=openxcresulttool_export_attachments",
+                    "-Xlinker", "--export=openxcresulttool_export_metrics",
                 ],
                 .when(platforms: [.wasi])
             )

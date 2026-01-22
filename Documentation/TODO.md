@@ -21,7 +21,7 @@
 ## Higher Effort
 - [x] Add `export diagnostics` (download zip) to the web harness.
 - [x] Add `export attachments` (download zip) to the web harness.
-- [ ] Add `export metrics` (download zip) to the web harness.
+- [x] Add `export metrics` (download zip) to the web harness.
 - [ ] Add `export object` (download zip) to the web harness.
 - [ ] Add `merge` (multi-upload + output bundle/zip) to the web harness.
 - [ ] Add `format description diff` (two bundles + diff view) to the web harness.
