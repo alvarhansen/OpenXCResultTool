@@ -202,6 +202,13 @@ function safeReaddir(fs, dirPath) {
   }
 }
 
+function mountRootFor(bundlePath) {
+  if (bundlePath.startsWith("/compare/")) {
+    return "/compare";
+  }
+  return "/work";
+}
+
 function resetState(
   targetState = state,
   nameElement = elements.bundleName,
@@ -361,7 +368,7 @@ async function mountBundle(fs, targetState = state, mountRoot = "/work") {
       const data = new Uint8Array(await file.arrayBuffer());
       fs.writeFileSync(targetPath, data);
     }
-    return `${mountRoot}/${targetState.bundleRoot}`;
+    return resolveBundlePath(fs, mountRoot, targetState);
   }
   if (targetState.source === "zip") {
     for (const entry of targetState.entries) {
@@ -369,7 +376,7 @@ async function mountBundle(fs, targetState = state, mountRoot = "/work") {
       ensureDir(fs, path.dirname(targetPath));
       fs.writeFileSync(targetPath, entry.data);
     }
-    return `${mountRoot}/${targetState.bundleRoot}`;
+    return resolveBundlePath(fs, mountRoot, targetState);
   }
   throw new Error("No bundle loaded.");
 }
@@ -442,22 +449,79 @@ function getLastError(instance) {
   return message;
 }
 
-function validateInfoPlist(fs, bundlePath) {
+function findBundleRoots(fs, mountRoot) {
+  const roots = [];
+  const stack = [mountRoot];
+  let visited = 0;
+
+  while (stack.length) {
+    const current = stack.pop();
+    const entries = safeReaddir(fs, current);
+    for (const name of entries) {
+      if (name === "." || name === "..") {
+        continue;
+      }
+      const fullPath = path.join(current, name);
+      let stat;
+      try {
+        stat = fs.statSync(fullPath);
+      } catch (error) {
+        continue;
+      }
+      visited += 1;
+      if (visited > 3000) {
+        return roots;
+      }
+      if (stat.isDirectory()) {
+        if (name.endsWith(".xcresult") && fs.existsSync(`${fullPath}/Info.plist`)) {
+          roots.push(fullPath);
+        }
+        stack.push(fullPath);
+      }
+    }
+  }
+
+  return roots;
+}
+
+function resolveBundlePath(fs, mountRoot, targetState) {
+  const candidate = normalizeRelativePath(targetState.bundleRoot ?? "");
+  const candidatePath = `${mountRoot}/${candidate}`;
+  if (candidate && fs.existsSync(`${candidatePath}/Info.plist`)) {
+    return candidatePath;
+  }
+  const roots = findBundleRoots(fs, mountRoot);
+  if (roots.length === 1) {
+    const resolved = roots[0];
+    const relative = normalizeRelativePath(path.relative(mountRoot, resolved));
+    targetState.bundleRoot = relative;
+    return resolved;
+  }
+  return candidatePath;
+}
+
+function validateInfoPlist(fs, bundlePath, mountRoot) {
   const plistPath = `${bundlePath}/Info.plist`;
   if (fs.existsSync(plistPath)) {
     return null;
   }
 
-  const rootListing = safeReaddir(fs, "/work");
+  const rootListing = safeReaddir(fs, mountRoot);
   const bundleListing = safeReaddir(fs, bundlePath);
-  const rootHasPlist = fs.existsSync("/work/Info.plist");
-  const rootHint = rootHasPlist ? "Found /work/Info.plist (bundle root may be missing)." : "No /work/Info.plist.";
+  const rootHasPlist = fs.existsSync(`${mountRoot}/Info.plist`);
+  const rootHint = rootHasPlist
+    ? `Found ${mountRoot}/Info.plist (bundle root may be missing).`
+    : `No ${mountRoot}/Info.plist.`;
+  const discoveredRoots = findBundleRoots(fs, mountRoot)
+    .map((root) => normalizeRelativePath(path.relative(mountRoot, root)))
+    .sort();
   const rootPreview = rootListing.slice(0, 8).join(", ") || "empty";
   const bundlePreview = bundleListing.slice(0, 8).join(", ") || "empty";
   return [
     `Info.plist not found at ${plistPath}.`,
     rootHint,
-    `/work entries: ${rootPreview}`,
+    `Discovered bundles: ${discoveredRoots.join(", ") || "none"}`,
+    `${mountRoot} entries: ${rootPreview}`,
     `Bundle entries: ${bundlePreview}`
   ].join(" ");
 }
@@ -608,7 +672,7 @@ async function runExport() {
         bundlePath = await mountBundle(wasmFs.fs);
       }
       if (spec.requiresInfoPlist) {
-        const infoError = validateInfoPlist(wasmFs.fs, bundlePath);
+        const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
         if (infoError) {
           throw new Error(infoError);
         }
@@ -694,7 +758,7 @@ async function runDownloadExport(spec) {
     const { instance, wasmFs } = await createRuntime();
     const { bundlePath } = await prepareDatabase(instance, wasmFs);
     if (spec.requiresInfoPlist) {
-      const infoError = validateInfoPlist(wasmFs.fs, bundlePath);
+      const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
       if (infoError) {
         throw new Error(infoError);
       }
