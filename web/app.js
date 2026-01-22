@@ -27,7 +27,6 @@ const elements = {
   objectTypeSelect: document.getElementById("object-type-select"),
   compactToggle: document.getElementById("compact-toggle"),
   runButton: document.getElementById("run-button"),
-  smokeButton: document.getElementById("smoke-button"),
   status: document.getElementById("status"),
   output: document.getElementById("output"),
   copyButton: document.getElementById("copy-button"),
@@ -684,9 +683,6 @@ async function runExport() {
 
   setStatus("Loading WASM runtime...", "info");
   elements.runButton.disabled = true;
-  if (elements.smokeButton) {
-    elements.smokeButton.disabled = true;
-  }
   elements.output.textContent = "// Running...";
 
   try {
@@ -768,9 +764,6 @@ async function runExport() {
     setStatus(message, "error");
   } finally {
     elements.runButton.disabled = false;
-    if (elements.smokeButton) {
-      elements.smokeButton.disabled = false;
-    }
   }
 }
 
@@ -788,9 +781,6 @@ async function runDownloadExport(spec) {
 
   setStatus("Loading WASM runtime...", "info");
   elements.runButton.disabled = true;
-  if (elements.smokeButton) {
-    elements.smokeButton.disabled = true;
-  }
   elements.output.textContent = "// Running export...";
 
   try {
@@ -881,9 +871,6 @@ async function runDownloadExport(spec) {
     setStatus(message, "error");
   } finally {
     elements.runButton.disabled = false;
-    if (elements.smokeButton) {
-      elements.smokeButton.disabled = false;
-    }
   }
 }
 
@@ -899,9 +886,6 @@ async function runCompare() {
 
   setStatus("Loading WASM runtime...", "info");
   elements.runButton.disabled = true;
-  if (elements.smokeButton) {
-    elements.smokeButton.disabled = true;
-  }
   elements.output.textContent = "// Running compare...";
 
   try {
@@ -932,53 +916,6 @@ async function runCompare() {
     setStatus(message, "error");
   } finally {
     elements.runButton.disabled = false;
-    if (elements.smokeButton) {
-      elements.smokeButton.disabled = false;
-    }
-  }
-}
-
-async function runSqliteSmokeTest() {
-  if (!state.bundleRoot || state.fileCount === 0) {
-    setStatus("Select a .xcresult folder or zip before running.", "error");
-    return;
-  }
-
-  setStatus("Running SQLite smoke test...", "info");
-  elements.runButton.disabled = true;
-  if (elements.smokeButton) {
-    elements.smokeButton.disabled = true;
-  }
-  elements.output.textContent = "// Running SQLite smoke test...";
-
-  try {
-    const { instance, wasmFs } = await createRuntime();
-    const { bundlePath } = await prepareDatabase(instance, wasmFs);
-    const exportFn = instance.exports.openxcresulttool_sqlite_smoke_test_json;
-    if (!exportFn) {
-      throw new Error("Missing export: openxcresulttool_sqlite_smoke_test_json");
-    }
-    const pathPtr = allocCString(instance, bundlePath);
-    const compactFlag = elements.compactToggle.checked ? 1 : 0;
-    const resultPtr = exportFn(pathPtr, compactFlag);
-    freeCString(instance, pathPtr);
-    if (!resultPtr) {
-      const error = getLastError(instance) || "Unknown error";
-      throw new Error(error);
-    }
-    const json = readCString(instance, resultPtr);
-    freeCString(instance, resultPtr);
-    elements.output.textContent = json;
-    setStatus("SQLite smoke test complete.", "success");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    elements.output.textContent = "// Failed to run sqlite smoke test.";
-    setStatus(message, "error");
-  } finally {
-    elements.runButton.disabled = false;
-    if (elements.smokeButton) {
-      elements.smokeButton.disabled = false;
-    }
   }
 }
 
@@ -1256,9 +1193,6 @@ if (elements.compareZipInput) {
 }
 elements.commandSelect.addEventListener("change", updateTestIdVisibility);
 elements.runButton.addEventListener("click", runExport);
-if (elements.smokeButton) {
-  elements.smokeButton.addEventListener("click", runSqliteSmokeTest);
-}
 elements.copyButton.addEventListener("click", copyOutput);
 if (elements.dropZone) {
   elements.dropZone.addEventListener("dragenter", (event) => {
