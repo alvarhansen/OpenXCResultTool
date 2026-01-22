@@ -181,6 +181,12 @@ h1 {
   color: var(--muted);
 }
 
+.controls label.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .controls input,
 .controls select {
   padding: 10px 12px;
