@@ -310,9 +310,10 @@ async function createRuntime() {
     const wasi = new WASI({
       args: [],
       env: {},
-      cwd: "/",
       preopenDirectories: {
-        "/": "/",
+        "/work": "/work",
+        "/compare": "/compare",
+        "/tmp": "/tmp",
       },
       bindings: {
         ...defaultBindings,
@@ -549,54 +550,9 @@ function getLastError(instance) {
   return message;
 }
 
-function findBundleRoots(fs, mountRoot) {
-  const roots = [];
-  const stack = [mountRoot];
-  let visited = 0;
-
-  while (stack.length) {
-    const current = stack.pop();
-    const entries = safeReaddir(fs, current);
-    for (const name of entries) {
-      if (name === "." || name === "..") {
-        continue;
-      }
-      const fullPath = path.join(current, name);
-      let stat;
-      try {
-        stat = fs.statSync(fullPath);
-      } catch (error) {
-        continue;
-      }
-      visited += 1;
-      if (visited > 3000) {
-        return roots;
-      }
-      if (stat.isDirectory()) {
-        if (name.endsWith(".xcresult") && fs.existsSync(`${fullPath}/Info.plist`)) {
-          roots.push(fullPath);
-        }
-        stack.push(fullPath);
-      }
-    }
-  }
-
-  return roots;
-}
-
 function resolveBundlePath(fs, mountRoot, targetState) {
   const candidate = normalizeRelativePath(targetState.bundleRoot ?? "");
   const candidatePath = `${mountRoot}/${candidate}`;
-  if (candidate && fs.existsSync(`${candidatePath}/Info.plist`)) {
-    return candidatePath;
-  }
-  const roots = findBundleRoots(fs, mountRoot);
-  if (roots.length === 1) {
-    const resolved = roots[0];
-    const relative = normalizeRelativePath(path.relative(mountRoot, resolved));
-    targetState.bundleRoot = relative;
-    return resolved;
-  }
   return candidatePath;
 }
 
