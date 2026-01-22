@@ -316,10 +316,9 @@ async function createRuntime() {
     const wasi = new WASI({
       args: [],
       env: {},
+      cwd: "/",
       preopenDirectories: {
-        "/work": "/work",
-        "/compare": "/compare",
-        "/tmp": "/tmp",
+        "/": "/",
       },
       bindings: {
         ...defaultBindings,
