@@ -45,6 +45,7 @@ const commandSpecs = {
     exportName: "openxcresulttool_get_metadata_json",
     needsTestId: false,
     requiresDatabase: false,
+    requiresInfoPlist: true,
   },
   "format-description": {
     exportName: "openxcresulttool_format_description_json",
@@ -65,6 +66,7 @@ const commandSpecs = {
     idLabel: "Object Id",
     idPlaceholder: "Optional object id (defaults to root)",
     requiresDatabase: false,
+    requiresInfoPlist: true,
   },
   compare: {
     exportName: "openxcresulttool_compare_json",
@@ -77,6 +79,7 @@ const commandSpecs = {
     action: "download",
     downloadSignature: "path+output",
     outputName: "diagnostics",
+    requiresInfoPlist: true,
   },
   "export-attachments": {
     exportName: "openxcresulttool_export_attachments",
@@ -87,6 +90,7 @@ const commandSpecs = {
     downloadSignature: "path+output+testId+flag",
     outputName: "attachments",
     showOnlyFailures: true,
+    requiresInfoPlist: true,
   },
   "export-metrics": {
     exportName: "openxcresulttool_export_metrics",
@@ -96,6 +100,7 @@ const commandSpecs = {
     action: "download",
     downloadSignature: "path+output+testId",
     outputName: "metrics",
+    requiresInfoPlist: true,
   },
   "export-object": {
     exportName: "openxcresulttool_export_object",
@@ -107,6 +112,7 @@ const commandSpecs = {
     outputName: "object",
     useTestIdInName: true,
     showObjectType: true,
+    requiresInfoPlist: true,
   },
   summary: { exportName: "openxcresulttool_get_test_results_summary_json", needsTestId: false },
   tests: { exportName: "openxcresulttool_get_test_results_tests_json", needsTestId: false },
@@ -185,6 +191,14 @@ function ensureDir(fs, dirPath) {
         throw error;
       }
     }
+  }
+}
+
+function safeReaddir(fs, dirPath) {
+  try {
+    return fs.readdirSync(dirPath);
+  } catch (error) {
+    return [];
   }
 }
 
@@ -341,7 +355,7 @@ async function createRuntime() {
 async function mountBundle(fs, targetState = state, mountRoot = "/work") {
   if (targetState.source === "directory") {
     for (const file of targetState.files) {
-      const relativePath = file.webkitRelativePath || file.name;
+      const relativePath = file.webkitRelativePath || file._relativePath || file.name;
       const targetPath = `${mountRoot}/${relativePath}`;
       ensureDir(fs, path.dirname(targetPath));
       const data = new Uint8Array(await file.arrayBuffer());
@@ -426,6 +440,26 @@ function getLastError(instance) {
   const message = readCString(instance, errorPtr);
   freeCString(instance, errorPtr);
   return message;
+}
+
+function validateInfoPlist(fs, bundlePath) {
+  const plistPath = `${bundlePath}/Info.plist`;
+  if (fs.existsSync(plistPath)) {
+    return null;
+  }
+
+  const rootListing = safeReaddir(fs, "/work");
+  const bundleListing = safeReaddir(fs, bundlePath);
+  const rootHasPlist = fs.existsSync("/work/Info.plist");
+  const rootHint = rootHasPlist ? "Found /work/Info.plist (bundle root may be missing)." : "No /work/Info.plist.";
+  const rootPreview = rootListing.slice(0, 8).join(", ") || "empty";
+  const bundlePreview = bundleListing.slice(0, 8).join(", ") || "empty";
+  return [
+    `Info.plist not found at ${plistPath}.`,
+    rootHint,
+    `/work entries: ${rootPreview}`,
+    `Bundle entries: ${bundlePreview}`
+  ].join(" ");
 }
 
 async function prepareDatabase(instance, wasmFs, targetState = state, mountRoot = "/work") {
@@ -573,6 +607,12 @@ async function runExport() {
       } else {
         bundlePath = await mountBundle(wasmFs.fs);
       }
+      if (spec.requiresInfoPlist) {
+        const infoError = validateInfoPlist(wasmFs.fs, bundlePath);
+        if (infoError) {
+          throw new Error(infoError);
+        }
+      }
     }
 
     const exportFn = instance.exports[spec.exportName];
@@ -653,6 +693,12 @@ async function runDownloadExport(spec) {
   try {
     const { instance, wasmFs } = await createRuntime();
     const { bundlePath } = await prepareDatabase(instance, wasmFs);
+    if (spec.requiresInfoPlist) {
+      const infoError = validateInfoPlist(wasmFs.fs, bundlePath);
+      if (infoError) {
+        throw new Error(infoError);
+      }
+    }
     const exportFn = instance.exports[spec.exportName];
     if (!exportFn) {
       throw new Error(`Missing export: ${spec.exportName}`);
@@ -1002,6 +1048,11 @@ async function collectFilesFromEntry(entry, rootName, files) {
           });
         } catch (error) {
           // Best effort; fall back to name if the property is read-only.
+        }
+        try {
+          file._relativePath = relativePath;
+        } catch (error) {
+          // Ignore if the File object is sealed.
         }
         files.push(file);
         resolve();
