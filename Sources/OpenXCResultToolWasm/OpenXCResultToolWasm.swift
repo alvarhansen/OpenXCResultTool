@@ -102,6 +102,38 @@ public func openxcresulttool_get_metadata_json(
 }
 
 @MainActor
+@_cdecl("openxcresulttool_get_metadata_from_plist_json")
+public func openxcresulttool_get_metadata_from_plist_json(
+    _ dataPointer: UnsafePointer<UInt8>?,
+    _ length: Int,
+    _ compact: Bool
+) -> UnsafeMutablePointer<CChar>? {
+    guard let dataPointer, length > 0 else {
+        lastErrorMessage = "plist bytes are required"
+        return nil
+    }
+    let data = Data(bytes: dataPointer, count: length)
+    do {
+        let plist = try PropertyListSerialization.propertyList(
+            from: data,
+            options: [],
+            format: nil
+        )
+        guard let dict = plist as? [String: Any] else {
+            throw WasmExportError("Invalid Info.plist metadata.")
+        }
+        let metadata = metadataDictionary(from: dict)
+        let options: JSONSerialization.WritingOptions = compact ? [] : [.prettyPrinted]
+        let jsonData = try JSONSerialization.data(withJSONObject: metadata, options: options)
+        lastErrorMessage = nil
+        return makeCString(String(decoding: jsonData, as: UTF8.self))
+    } catch {
+        lastErrorMessage = String(describing: error)
+        return nil
+    }
+}
+
+@MainActor
 @_cdecl("openxcresulttool_format_description_json")
 public func openxcresulttool_format_description_json(_ compact: Bool) -> UnsafeMutablePointer<CChar>? {
     return buildJSONString(compact: compact) {
@@ -493,6 +525,30 @@ private func metadataInfoPlistPath(for path: String) -> String {
         return url.path
     }
     return url.appendingPathComponent("Info.plist").path
+}
+
+private func metadataDictionary(from dict: [String: Any]) -> [String: Any] {
+    let dateCreated = (dict["dateCreated"] as? Date).map { formatMetadataDate($0) } ?? ""
+    let externalLocations = dict["externalLocations"] as? [[String: Any]] ?? []
+    let rootId = dict["rootId"] as? [String: Any] ?? [:]
+    let storage = dict["storage"] as? [String: Any] ?? [:]
+    let version = dict["version"] as? [String: Any] ?? [:]
+
+    return [
+        "dateCreated": dateCreated,
+        "externalLocations": externalLocations,
+        "rootId": rootId,
+        "storage": storage,
+        "version": version
+    ]
+}
+
+private func formatMetadataDate(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone.current
+    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+    return formatter.string(from: date)
 }
 
 private func debugDirectoryListing(_ path: String, limit: Int = 20) -> String {

@@ -46,6 +46,7 @@ const commandSpecs = {
     needsTestId: false,
     requiresDatabase: false,
     requiresInfoPlist: true,
+    usePlistBytes: true,
   },
   "format-description": {
     exportName: "openxcresulttool_format_description_json",
@@ -395,6 +396,20 @@ function allocCString(instance, value) {
   return ptr;
 }
 
+function allocBytes(instance, data) {
+  const alloc = instance.exports.openxcresulttool_alloc;
+  if (!alloc) {
+    throw new Error("openxcresulttool_alloc export is missing.");
+  }
+  const ptr = alloc(data.length);
+  if (!ptr) {
+    throw new Error("Unable to allocate memory inside WASM.");
+  }
+  const memory = new Uint8Array(instance.exports.memory.buffer, ptr, data.length);
+  memory.set(data);
+  return ptr;
+}
+
 function readCString(instance, ptr) {
   const memory = new Uint8Array(instance.exports.memory.buffer);
   let end = ptr;
@@ -660,6 +675,7 @@ async function runExport() {
   try {
     const { instance, wasmFs } = await createRuntime();
     let bundlePath = null;
+    let plistBytes = null;
     if (requiresBundle) {
       if (requiresDatabase) {
         const prepared = await prepareDatabase(instance, wasmFs);
@@ -671,9 +687,19 @@ async function runExport() {
         bundlePath = await mountBundle(wasmFs.fs);
       }
       if (spec.requiresInfoPlist) {
-        const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
-        if (infoError) {
-          throw new Error(infoError);
+        if (spec.usePlistBytes) {
+          const plistPath = `${bundlePath}/Info.plist`;
+          try {
+            plistBytes = wasmFs.fs.readFileSync(plistPath);
+          } catch (error) {
+            const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
+            throw new Error(infoError ?? `Unable to read ${plistPath}.`);
+          }
+        } else {
+          const infoError = validateInfoPlist(wasmFs.fs, bundlePath, mountRootFor(bundlePath));
+          if (infoError) {
+            throw new Error(infoError);
+          }
         }
       }
     }
@@ -688,7 +714,12 @@ async function runExport() {
     let testPtr = 0;
     let resultPtr = 0;
 
-    if (signature === "compact") {
+    if (spec.usePlistBytes) {
+      const plistData = plistBytes ?? new Uint8Array();
+      const dataPtr = allocBytes(instance, plistData);
+      resultPtr = exportFn(dataPtr, plistData.length, compactFlag);
+      freeCString(instance, dataPtr);
+    } else if (signature === "compact") {
       resultPtr = exportFn(compactFlag);
     } else {
       if (!bundlePath) {
