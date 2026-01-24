@@ -34,7 +34,7 @@
 - [x] Surface sqlite step errors in `SQLiteDatabase.query`.
 - [x] Surface sqlite step errors in merge table scans.
 - [x] Add size bounds checks for zstd known-size decompression.
-- [ ] Reduce CLI JSON output formatting duplication.
-- [ ] Avoid `Data` -> `[UInt8]` copy in `XCResultRawParser`.
+- [x] Reduce CLI JSON output formatting duplication.
+- [x] Avoid `Data` -> `[UInt8]` copy in `XCResultRawParser`.
 - [ ] Add WASI registry cleanup API for repeated browser runs.
 - [ ] Deduplicate WASM SQLite open logic with the core module.

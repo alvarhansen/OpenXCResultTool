@@ -48,16 +48,7 @@ struct BuildResultsCommand: ParsableCommand {
 
         let builder = try BuildResultsBuilder(xcresultPath: path)
         let results = try builder.buildResults()
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(results)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(results, compact: compact)
     }
 }
 
@@ -92,16 +83,7 @@ struct ContentAvailabilityCommand: ParsableCommand {
 
         let builder = try ContentAvailabilityBuilder(xcresultPath: path)
         let availability = try builder.contentAvailability()
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(availability)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(availability, compact: compact)
     }
 }
 
@@ -251,16 +233,7 @@ struct Summary: ParsableCommand {
 
         let builder = try TestResultsSummaryBuilder(xcresultPath: path)
         let summary = try builder.summary()
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(summary)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(summary, compact: compact)
     }
 }
 
@@ -295,16 +268,7 @@ struct TestsList: ParsableCommand {
 
         let builder = try TestResultsTestsBuilder(xcresultPath: path)
         let tests = try builder.tests()
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(tests)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(tests, compact: compact)
     }
 }
 
@@ -342,16 +306,7 @@ struct TestDetails: ParsableCommand {
 
         let builder = try TestResultsTestDetailsBuilder(xcresultPath: path)
         let details = try builder.testDetails(testId: testId)
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(details)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(details, compact: compact)
     }
 }
 
@@ -389,16 +344,7 @@ struct ActivitiesCommand: ParsableCommand {
 
         let builder = try TestResultsActivitiesBuilder(xcresultPath: path)
         let activities = try builder.activities(testId: testId)
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(activities)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(activities, compact: compact)
     }
 }
 
@@ -436,16 +382,7 @@ struct MetricsCommand: ParsableCommand {
 
         let builder = try TestResultsMetricsBuilder(xcresultPath: path)
         let metrics = try builder.metrics(testId: testId)
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(metrics)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(metrics, compact: compact)
     }
 }
 
@@ -480,16 +417,7 @@ struct InsightsCommand: ParsableCommand {
 
         let builder = try TestResultsInsightsBuilder(xcresultPath: path)
         let insights = try builder.insights()
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-
-        let data = try encoder.encode(insights)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(insights, compact: compact)
     }
 }
 
@@ -791,15 +719,7 @@ struct CompareCommand: ParsableCommand {
             output.analyzerIssues = result.analyzerIssues
         }
 
-        let encoder = JSONEncoder()
-        var formatting: JSONEncoder.OutputFormatting = [.prettyPrinted]
-        if #available(macOS 10.15, *) {
-            formatting.insert(.withoutEscapingSlashes)
-        }
-        encoder.outputFormatting = formatting
-        let data = try encoder.encode(output)
-        FileHandle.standardOutput.write(data)
-        FileHandle.standardOutput.write(Data([0x0A]))
+        try writeJSON(output, compact: false)
     }
 }
 
@@ -839,6 +759,28 @@ struct VersionCommand: ParsableCommand {
         openxcresulttool version \(OpenXCResultToolVersion.tool) (schema version: \(OpenXCResultToolVersion.schema), legacy commands format version: \(OpenXCResultToolVersion.legacyFormat))
         """
         FileHandle.standardOutput.write(Data((output + "\n").utf8))
+    }
+}
+
+private func makeJSONEncoder(compact: Bool) -> JSONEncoder {
+    let encoder = JSONEncoder()
+    var formatting: JSONEncoder.OutputFormatting = compact ? [] : [.prettyPrinted]
+    if #available(macOS 10.15, *) {
+        formatting.insert(.withoutEscapingSlashes)
+    }
+    encoder.outputFormatting = formatting
+    return encoder
+}
+
+private func writeJSON<T: Encodable>(_ value: T, compact: Bool) throws {
+    let data = try makeJSONEncoder(compact: compact).encode(value)
+    writeOutput(data)
+}
+
+private func writeOutput(_ data: Data) {
+    FileHandle.standardOutput.write(data)
+    if data.last != 0x0A {
+        FileHandle.standardOutput.write(Data([0x0A]))
     }
 }
 
