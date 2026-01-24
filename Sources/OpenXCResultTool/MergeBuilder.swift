@@ -21,16 +21,20 @@ public struct MergeBuilder {
             throw MergeError("Two or more result bundle paths are required to merge.")
         }
 
-        let outputURL = URL(fileURLWithPath: outputPath)
+        let outputURL = URL(fileURLWithPath: outputPath).standardizedFileURL
+        let inputURLs = inputPaths.map { URL(fileURLWithPath: $0).standardizedFileURL }
+        if inputURLs.contains(outputURL) {
+            throw MergeError("Output path must not be one of the input bundles.")
+        }
         if FileManager.default.fileExists(atPath: outputURL.path) {
             try FileManager.default.removeItem(at: outputURL)
         }
 
-        let baseURL = URL(fileURLWithPath: inputPaths[0])
+        let baseURL = inputURLs[0]
         try FileManager.default.copyItem(at: baseURL, to: outputURL)
 
-        for path in inputPaths.dropFirst() {
-            try mergeBundle(from: URL(fileURLWithPath: path), into: outputURL)
+        for sourceURL in inputURLs.dropFirst() {
+            try mergeBundle(from: sourceURL, into: outputURL)
         }
 
         try updateInfoPlist(at: outputURL)
@@ -101,7 +105,12 @@ public struct MergeBuilder {
         let offsets = try tableOffsets(db: outputHandle, tables: tables)
 
         try execute(db: outputHandle, sql: "BEGIN IMMEDIATE;")
-        defer { _ = try? execute(db: outputHandle, sql: "COMMIT;") }
+        var didCommit = false
+        defer {
+            if !didCommit {
+                _ = try? execute(db: outputHandle, sql: "ROLLBACK;")
+            }
+        }
 
         for table in tables {
             let columns = try tableColumns(db: outputHandle, table: table)
@@ -118,6 +127,8 @@ public struct MergeBuilder {
                 rowOffset: offset
             )
         }
+        try execute(db: outputHandle, sql: "COMMIT;")
+        didCommit = true
     }
 
     private func updateInfoPlist(at outputURL: URL) throws {
@@ -148,10 +159,18 @@ public struct MergeBuilder {
         defer { sqlite3_finalize(statement) }
 
         var names: [String] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            if let cString = sqlite3_column_text(statement, 0) {
-                names.append(String(cString: cString))
+        while true {
+            let rc = sqlite3_step(statement)
+            if rc == SQLITE_ROW {
+                if let cString = sqlite3_column_text(statement, 0) {
+                    names.append(String(cString: cString))
+                }
+                continue
             }
+            if rc == SQLITE_DONE {
+                break
+            }
+            throw MergeError(lastErrorMessage(db))
         }
         return names
     }
@@ -165,10 +184,13 @@ public struct MergeBuilder {
                 throw MergeError(lastErrorMessage(db))
             }
             defer { sqlite3_finalize(statement) }
-            if sqlite3_step(statement) == SQLITE_ROW {
+            let rc = sqlite3_step(statement)
+            if rc == SQLITE_ROW {
                 offsets[table] = sqlite3_column_int64(statement, 0)
-            } else {
+            } else if rc == SQLITE_DONE {
                 offsets[table] = 0
+            } else {
+                throw MergeError(lastErrorMessage(db))
             }
         }
         return offsets
@@ -183,10 +205,18 @@ public struct MergeBuilder {
         defer { sqlite3_finalize(statement) }
 
         var columns: [String] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            if let cString = sqlite3_column_text(statement, 1) {
-                columns.append(String(cString: cString))
+        while true {
+            let rc = sqlite3_step(statement)
+            if rc == SQLITE_ROW {
+                if let cString = sqlite3_column_text(statement, 1) {
+                    columns.append(String(cString: cString))
+                }
+                continue
             }
+            if rc == SQLITE_DONE {
+                break
+            }
+            throw MergeError(lastErrorMessage(db))
         }
         return columns
     }
@@ -200,12 +230,20 @@ public struct MergeBuilder {
         defer { sqlite3_finalize(statement) }
 
         var map: [String: String] = [:]
-        while sqlite3_step(statement) == SQLITE_ROW {
-            guard let tableName = sqlite3_column_text(statement, 2),
-                  let fromColumn = sqlite3_column_text(statement, 3) else {
+        while true {
+            let rc = sqlite3_step(statement)
+            if rc == SQLITE_ROW {
+                guard let tableName = sqlite3_column_text(statement, 2),
+                      let fromColumn = sqlite3_column_text(statement, 3) else {
+                    continue
+                }
+                map[String(cString: fromColumn)] = String(cString: tableName)
                 continue
             }
-            map[String(cString: fromColumn)] = String(cString: tableName)
+            if rc == SQLITE_DONE {
+                break
+            }
+            throw MergeError(lastErrorMessage(db))
         }
         return map
     }
@@ -236,53 +274,61 @@ public struct MergeBuilder {
         }
         defer { sqlite3_finalize(insertStatement) }
 
-        while sqlite3_step(selectStatement) == SQLITE_ROW {
-            sqlite3_reset(insertStatement)
-            sqlite3_clear_bindings(insertStatement)
+        while true {
+            let rc = sqlite3_step(selectStatement)
+            if rc == SQLITE_ROW {
+                sqlite3_reset(insertStatement)
+                sqlite3_clear_bindings(insertStatement)
 
-            let rowId = sqlite3_column_int64(selectStatement, 0)
-            sqlite3_bind_int64(insertStatement, 1, rowId + rowOffset)
+                let rowId = sqlite3_column_int64(selectStatement, 0)
+                sqlite3_bind_int64(insertStatement, 1, rowId + rowOffset)
 
-            for (index, name) in columns.enumerated() {
-                let sourceIndex = Int32(index + 1)
-                let targetIndex = Int32(index + 2)
-                let type = sqlite3_column_type(selectStatement, sourceIndex)
-                if type == SQLITE_NULL {
-                    sqlite3_bind_null(insertStatement, targetIndex)
-                    continue
-                }
+                for (index, name) in columns.enumerated() {
+                    let sourceIndex = Int32(index + 1)
+                    let targetIndex = Int32(index + 2)
+                    let type = sqlite3_column_type(selectStatement, sourceIndex)
+                    if type == SQLITE_NULL {
+                        sqlite3_bind_null(insertStatement, targetIndex)
+                        continue
+                    }
 
-                if let referencedTable = foreignKeys[name],
-                   type == SQLITE_INTEGER,
-                   let offset = offsets[referencedTable] {
-                    let value = sqlite3_column_int64(selectStatement, sourceIndex)
-                    sqlite3_bind_int64(insertStatement, targetIndex, value + offset)
-                    continue
-                }
+                    if let referencedTable = foreignKeys[name],
+                       type == SQLITE_INTEGER,
+                       let offset = offsets[referencedTable] {
+                        let value = sqlite3_column_int64(selectStatement, sourceIndex)
+                        sqlite3_bind_int64(insertStatement, targetIndex, value + offset)
+                        continue
+                    }
 
-                switch type {
-                case SQLITE_INTEGER:
-                    sqlite3_bind_int64(insertStatement, targetIndex, sqlite3_column_int64(selectStatement, sourceIndex))
-                case SQLITE_FLOAT:
-                    sqlite3_bind_double(insertStatement, targetIndex, sqlite3_column_double(selectStatement, sourceIndex))
-                case SQLITE_TEXT:
-                    if let text = sqlite3_column_text(selectStatement, sourceIndex) {
-                        sqlite3_bind_text(insertStatement, targetIndex, text, -1, sqliteTransient)
-                    } else {
+                    switch type {
+                    case SQLITE_INTEGER:
+                        sqlite3_bind_int64(insertStatement, targetIndex, sqlite3_column_int64(selectStatement, sourceIndex))
+                    case SQLITE_FLOAT:
+                        sqlite3_bind_double(insertStatement, targetIndex, sqlite3_column_double(selectStatement, sourceIndex))
+                    case SQLITE_TEXT:
+                        if let text = sqlite3_column_text(selectStatement, sourceIndex) {
+                            sqlite3_bind_text(insertStatement, targetIndex, text, -1, sqliteTransient)
+                        } else {
+                            sqlite3_bind_null(insertStatement, targetIndex)
+                        }
+                    case SQLITE_BLOB:
+                        let bytes = sqlite3_column_blob(selectStatement, sourceIndex)
+                        let size = sqlite3_column_bytes(selectStatement, sourceIndex)
+                        sqlite3_bind_blob(insertStatement, targetIndex, bytes, size, sqliteTransient)
+                    default:
                         sqlite3_bind_null(insertStatement, targetIndex)
                     }
-                case SQLITE_BLOB:
-                    let bytes = sqlite3_column_blob(selectStatement, sourceIndex)
-                    let size = sqlite3_column_bytes(selectStatement, sourceIndex)
-                    sqlite3_bind_blob(insertStatement, targetIndex, bytes, size, sqliteTransient)
-                default:
-                    sqlite3_bind_null(insertStatement, targetIndex)
                 }
-            }
 
-            guard sqlite3_step(insertStatement) == SQLITE_DONE else {
-                throw MergeError(lastErrorMessage(target))
+                guard sqlite3_step(insertStatement) == SQLITE_DONE else {
+                    throw MergeError(lastErrorMessage(target))
+                }
+                continue
             }
+            if rc == SQLITE_DONE {
+                break
+            }
+            throw MergeError(lastErrorMessage(source))
         }
     }
 

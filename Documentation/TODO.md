@@ -26,3 +26,15 @@
 - [ ] Add `merge` (multi-upload + output bundle/zip) to the web harness.
 - [ ] Add `format description diff` (two bundles + diff view) to the web harness.
 - [ ] Add attachment/log viewer UI (preview + filters) to the web harness.
+
+## Code Review Tasklist
+- [x] Fix zstd streaming use-after-free in `ZstdDecompressor`.
+- [x] Guard merge output path overlaps with inputs.
+- [x] Roll back merge transaction on failure instead of deferred commit.
+- [x] Surface sqlite step errors in `SQLiteDatabase.query`.
+- [x] Surface sqlite step errors in merge table scans.
+- [x] Add size bounds checks for zstd known-size decompression.
+- [ ] Reduce CLI JSON output formatting duplication.
+- [ ] Avoid `Data` -> `[UInt8]` copy in `XCResultRawParser`.
+- [ ] Add WASI registry cleanup API for repeated browser runs.
+- [ ] Deduplicate WASM SQLite open logic with the core module.
