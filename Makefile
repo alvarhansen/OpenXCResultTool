@@ -11,6 +11,13 @@ WASM_MODULE_PRODUCT ?= openxcresulttool-wasm
 WASM_SQLITE_VERSION ?= 3460100
 WASM_SQLITE_YEAR ?= 2024
 
+WASM_RELEASE_DIR ?= .build/wasm32-unknown-wasip1/release
+WASM_RELEASE_WASM ?= $(WASM_RELEASE_DIR)/$(WASM_MODULE_PRODUCT).wasm
+WASM_MIN_WASM ?= $(WASM_RELEASE_DIR)/$(WASM_MODULE_PRODUCT).min.wasm
+WASM_WEB_WASM ?= web/openxcresulttool.wasm
+WASM_OPT_FLAGS ?= -Oz --strip-debug --strip-dwarf --strip-producers
+WASM_SWIFT_SIZE_FLAGS ?= -Xswiftc -Osize -Xswiftc -whole-module-optimization
+
 DOCKER_PLATFORM_FLAG := $(if $(DOCKER_PLATFORM),--platform=$(DOCKER_PLATFORM),)
 DOCKER_CMD = docker run --rm $(DOCKER_PLATFORM_FLAG) -v "$(PWD)":$(WORKDIR) -w $(WORKDIR) $(DOCKER_IMAGE)
 DOCKER_BUILD_CMD = docker build $(DOCKER_PLATFORM_FLAG) -t $(DOCKER_IMAGE) -f Dockerfile .
@@ -18,7 +25,7 @@ WASM_PLATFORM_FLAG := $(if $(WASM_PLATFORM),--platform=$(WASM_PLATFORM),)
 WASM_CMD = docker run --rm $(WASM_PLATFORM_FLAG) -v "$(PWD)":$(WORKDIR) -w $(WORKDIR) $(WASM_IMAGE)
 WASM_BUILD_CMD = docker build $(WASM_PLATFORM_FLAG) -t $(WASM_IMAGE) -f Dockerfile.wasm .
 
-.PHONY: linux-image linux-build linux-test wasm-image wasm-build wasm-module wasm-sqlite
+.PHONY: linux-image linux-build linux-test wasm-image wasm-build wasm-module wasm-module-release wasm-module-min wasm-sqlite
 
 linux-image:
 	$(DOCKER_BUILD_CMD)
@@ -37,6 +44,13 @@ wasm-build:
 
 wasm-module:
 	$(WASM_CMD) swift build --swift-sdk $(WASM_SDK_ID) --product $(WASM_MODULE_PRODUCT)
+
+wasm-module-release:
+	$(WASM_CMD) swift build -c release --swift-sdk $(WASM_SDK_ID) --product $(WASM_MODULE_PRODUCT) $(WASM_SWIFT_SIZE_FLAGS)
+
+wasm-module-min: wasm-module-release
+	$(WASM_CMD) bash -lc 'set -euo pipefail; input="$(WASM_RELEASE_WASM)"; output="$(WASM_MIN_WASM)"; if command -v wasm-opt >/dev/null 2>&1; then wasm-opt $(WASM_OPT_FLAGS) -o "$$output" "$$input"; elif command -v wasm-strip >/dev/null 2>&1; then wasm-strip -o "$$output" "$$input"; else cp "$$input" "$$output"; fi'
+	$(WASM_CMD) bash -lc 'cp "$(WASM_MIN_WASM)" "$(WASM_WEB_WASM)"'
 
 wasm-sqlite:
 	$(WASM_CMD) bash -lc "WASI_SDK_PATH=/opt/wasi-sdk SQLITE_VERSION=$(WASM_SQLITE_VERSION) SQLITE_YEAR=$(WASM_SQLITE_YEAR) ./scripts/build-sqlite-wasi.sh"

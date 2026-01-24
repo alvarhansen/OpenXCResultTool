@@ -10,6 +10,9 @@ This folder contains a minimal browser harness for calling the WASM exports from
 make wasm-image
 make wasm-sqlite
 make wasm-module
+
+# Size-optimized output (optional)
+make wasm-module-min
 ```
 
 2. Copy the module into this folder:
