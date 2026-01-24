@@ -22,6 +22,9 @@ struct ZstdDecompressor {
         guard size > 0 else {
             return Data()
         }
+        guard size <= UInt64(Int.max) else {
+            throw ZstdError("Zstd frame too large: \(size) bytes.")
+        }
         let outputSize = Int(size)
         var output = Data(count: outputSize)
         let result: size_t = try output.withUnsafeMutableBytes { outputBuffer in
@@ -54,26 +57,27 @@ struct ZstdDecompressor {
         var output = Data()
         let chunkSize = 64 * 1024
         var buffer = [UInt8](repeating: 0, count: chunkSize)
-
-        var input = data.withUnsafeBytes { rawBuffer -> ZSTD_inBuffer in
-            ZSTD_inBuffer(src: rawBuffer.baseAddress, size: rawBuffer.count, pos: 0)
-        }
-
-        while input.pos < input.size {
-            let result: size_t = buffer.withUnsafeMutableBytes { outputBuffer in
-                var outBuffer = ZSTD_outBuffer(dst: outputBuffer.baseAddress, size: outputBuffer.count, pos: 0)
-                let decompressResult = ZSTD_decompressStream(dctx, &outBuffer, &input)
-                if outBuffer.pos > 0 {
-                    output.append(contentsOf: outputBuffer.bindMemory(to: UInt8.self)[0..<outBuffer.pos])
+        try data.withUnsafeBytes { rawBuffer in
+            guard let baseAddress = rawBuffer.baseAddress else {
+                return
+            }
+            var input = ZSTD_inBuffer(src: baseAddress, size: rawBuffer.count, pos: 0)
+            while input.pos < input.size {
+                let result: size_t = buffer.withUnsafeMutableBytes { outputBuffer in
+                    var outBuffer = ZSTD_outBuffer(dst: outputBuffer.baseAddress, size: outputBuffer.count, pos: 0)
+                    let decompressResult = ZSTD_decompressStream(dctx, &outBuffer, &input)
+                    if outBuffer.pos > 0 {
+                        output.append(contentsOf: outputBuffer.bindMemory(to: UInt8.self)[0..<outBuffer.pos])
+                    }
+                    return decompressResult
                 }
-                return decompressResult
-            }
-            if ZSTD_isError(result) != 0 {
-                let message = String(cString: ZSTD_getErrorName(result))
-                throw ZstdError("Zstd decompression failed: \(message)")
-            }
-            if result == 0 && input.pos == input.size {
-                break
+                if ZSTD_isError(result) != 0 {
+                    let message = String(cString: ZSTD_getErrorName(result))
+                    throw ZstdError("Zstd decompression failed: \(message)")
+                }
+                if result == 0 && input.pos == input.size {
+                    break
+                }
             }
         }
 

@@ -55,8 +55,16 @@ final class SQLiteDatabase {
         }
 
         var results: [T] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            results.append(try row(statement!))
+        while true {
+            let rc = sqlite3_step(statement)
+            if rc == SQLITE_ROW {
+                results.append(try row(statement!))
+                continue
+            }
+            if rc == SQLITE_DONE {
+                break
+            }
+            throw SQLiteError(SQLiteDatabase.lastErrorMessage(db))
         }
         return results
     }
