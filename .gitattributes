@@ -7,3 +7,6 @@ Tests/Fixtures/*.xcresult/** filter=lfs diff=lfs merge=lfs -text
 
 # Store WebAssembly files in Git LFS.
 *.wasm filter=lfs diff=lfs merge=lfs -text
+
+# Exclude Dockerfile.wasm from Git LFS.
+Dockerfile.wasm -filter -diff -merge -text
