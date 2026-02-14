@@ -123,6 +123,8 @@ Some commands intentionally mirror legacy `xcresulttool` output and require `--l
 
 The repo includes a browser harness in `web/` for calling exported WASM functions.
 
+Live web version: [https://alvarhansen.github.io/OpenXCResultTool/](https://alvarhansen.github.io/OpenXCResultTool/)
+
 ```bash
 make wasm-image
 make wasm-sqlite
