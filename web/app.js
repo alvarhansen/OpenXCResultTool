@@ -177,6 +177,26 @@ function updateTestIdVisibility() {
       elements.objectTypeSelect.value = "file";
     }
   }
+  updateRunButtonLabel();
+}
+
+function updateRunButtonLabel() {
+  const command = elements.commandSelect.value;
+  const spec = commandSpecs[command] ?? {};
+  const selectedLabel = elements.commandSelect.selectedOptions?.[0]?.textContent?.trim() ?? "command";
+
+  if (command === "compare") {
+    elements.runButton.textContent = "Run compare";
+    return;
+  }
+
+  if (spec.action === "download") {
+    const exportKind = (spec.outputName ?? "files").replace(/-/g, " ");
+    elements.runButton.textContent = `Export ${exportKind}`;
+    return;
+  }
+
+  elements.runButton.textContent = `Run ${selectedLabel}`;
 }
 
 function ensureDir(fs, dirPath) {
