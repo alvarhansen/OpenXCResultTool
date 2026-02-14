@@ -1,0 +1,36 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1F3A"/>
+      <stop offset="0.5" stop-color="#0F4C81"/>
+      <stop offset="1" stop-color="#0D7A8F"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="250" y1="40" x2="980" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8FD3FF" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#8FFFD2" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="320" rx="18" fill="url(#bg)"/>
+  <circle cx="980" cy="74" r="140" fill="url(#glow)"/>
+  <circle cx="1080" cy="252" r="98" fill="#B6FFF1" fill-opacity="0.1"/>
+  <circle cx="198" cy="56" r="72" fill="#83C5FF" fill-opacity="0.12"/>
+
+  <rect x="56" y="52" width="214" height="36" rx="18" fill="#0A111C" fill-opacity="0.44"/>
+  <text x="76" y="76" fill="#B8E7FF" font-family="Menlo, Monaco, Consolas, monospace" font-size="16">openxcresulttool</text>
+
+  <text x="56" y="156" fill="#FFFFFF" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="56" font-weight="700">OpenXCResultTool</text>
+  <text x="56" y="198" fill="#D2ECFF" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="24">Read and export .xcresult data with Swift</text>
+  <text x="56" y="238" fill="#BCE6FF" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="19">CLI + Library + WASM module</text>
+
+  <g opacity="0.9">
+    <rect x="56" y="264" width="136" height="28" rx="14" fill="#0A111C" fill-opacity="0.5"/>
+    <text x="75" y="283" fill="#D8F3FF" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Swift 6.2</text>
+
+    <rect x="204" y="264" width="186" height="28" rx="14" fill="#0A111C" fill-opacity="0.5"/>
+    <text x="223" y="283" fill="#D8F3FF" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="14">JSON and CSV output</text>
+
+    <rect x="402" y="264" width="138" height="28" rx="14" fill="#0A111C" fill-opacity="0.5"/>
+    <text x="421" y="283" fill="#D8F3FF" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="14">WASM ready</text>
+  </g>
+</svg>
