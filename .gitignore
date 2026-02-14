@@ -8,3 +8,4 @@ DerivedData/
 .netrc
 Tests/Fixtures/InsightSampleApp/InsightSampleApp.xcodeproj/
 Tests/Fixtures/InsightSampleApp/Results/
+Vendor/
